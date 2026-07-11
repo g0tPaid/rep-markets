@@ -24,23 +24,54 @@ pnpm dev
 - Store: http://localhost:3002  
 - Admin: http://localhost:3002/admin/login  
 
-## Railway deploy
+## Deploy on Render (free)
 
-1. Create a new Railway project from GitHub repo `g0tPaid/rep-markets`
-2. Add a **PostgreSQL** plugin and link it (sets `DATABASE_URL`)
-3. Set variables:
-   - `NEXTAUTH_URL` = your Railway public URL (later your custom domain)
+### Option A — Blueprint (fastest)
+
+1. Open https://dashboard.render.com/select-repo?type=blueprint  
+2. Connect GitHub and select **`g0tPaid/rep-markets`**  
+3. Render reads `render.yaml` and creates:
+   - Free **Web Service**
+   - Free **Postgres** (expires after 30 days unless upgraded)
+4. Fill these when prompted:
+   - `NEXTAUTH_URL` → leave blank first, then set to your live URL after deploy (e.g. `https://rep-markets.onrender.com`)
+   - `ADMIN_EMAIL` → e.g. `admin@rep.markets`
+   - `ADMIN_PASSWORD` → strong password
+5. Click **Apply** and wait for the first deploy
+
+### Option B — Manual
+
+1. **New → PostgreSQL** → Free → create `rep-markets-db`  
+2. **New → Web Service** → repo `g0tPaid/rep-markets`  
+3. Settings:
+   - Runtime: **Node**
+   - Build: `corepack enable && pnpm install && pnpm build`
+   - Start: `pnpm exec prisma migrate deploy && pnpm start`
+   - Instance: **Free**
+4. Environment:
+   - `DATABASE_URL` = Internal Database URL from Postgres
+   - `NEXTAUTH_URL` = `https://YOUR-SERVICE.onrender.com`
    - `NEXTAUTH_SECRET` = long random string
-   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` = your admin login
-4. Deploy
-5. After first deploy, run seed once from Railway shell or locally against prod DB:
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` = admin login
+
+### After first deploy — seed once
+
+In Render → Web Service → **Shell**:
 
 ```bash
 pnpm db:seed
 ```
 
-6. Open `/admin/login` and sign in
+Then open:
 
-## Custom domain
+`https://YOUR-SERVICE.onrender.com/admin/login`
 
-Railway service → Settings → Networking → Custom Domain → add your domain → copy the DNS records into your registrar.
+### Custom domain
+
+Web Service → **Settings → Custom Domains** → add your domain → copy DNS records to your registrar.  
+Then update `NEXTAUTH_URL` to `https://your-domain.com` and redeploy.
+
+### Free-tier notes
+
+- Web service **sleeps after ~15 min** idle (first load can take ~1 min)
+- Free Postgres **expires in 30 days** unless you upgrade
