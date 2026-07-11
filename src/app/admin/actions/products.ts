@@ -8,6 +8,10 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/uploads";
 
+export type ProductActionState = {
+  error?: string;
+};
+
 function stringValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
@@ -50,12 +54,18 @@ function slugify(value: string) {
 
 function fileValue(formData: FormData, key: string) {
   const value = formData.get(key);
-  return value instanceof File ? value : null;
+  if (!(value instanceof File)) return null;
+  if (!value.size) return null;
+  return value;
 }
 
 function productData(formData: FormData) {
   const name = stringValue(formData, "name");
   const slug = stringValue(formData, "slug") || slugify(name);
+
+  if (!name) {
+    throw new Error("Product name is required.");
+  }
 
   return {
     name,
@@ -79,7 +89,7 @@ function productData(formData: FormData) {
     tags: csvValue(formData, "tags"),
     weight: optionalNumber(formData, "weight"),
     material: optionalString(formData, "material"),
-    status: stringValue(formData, "status") as ProductStatus,
+    status: (stringValue(formData, "status") || "DRAFT") as ProductStatus,
     featured: formData.get("featured") === "on",
     newArrival: formData.get("newArrival") === "on",
     homepageOrder: optionalNumber(formData, "homepageOrder"),
@@ -94,7 +104,7 @@ async function resolveImageUrl(formData: FormData, fileKey: string, existingKey:
 }
 
 async function replaceProductMedia(productId: string, formData: FormData) {
-  const MAX_IMAGES = 12;
+  const MAX_IMAGES = 8;
   const productName = stringValue(formData, "name") || "Product";
   const urls: string[] = [];
 
@@ -120,27 +130,53 @@ async function replaceProductMedia(productId: string, formData: FormData) {
   });
 }
 
-export async function createProduct(formData: FormData) {
-  await requireAdmin();
-  const product = await prisma.product.create({
-    data: productData(formData),
-  });
+function actionError(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return "Could not save product. Try fewer or smaller images (under 8MB each).";
+}
 
-  await replaceProductMedia(product.id, formData);
+export async function createProduct(
+  _prevState: ProductActionState,
+  formData: FormData,
+): Promise<ProductActionState> {
+  await requireAdmin();
+
+  try {
+    const product = await prisma.product.create({
+      data: productData(formData),
+    });
+
+    await replaceProductMedia(product.id, formData);
+  } catch (error) {
+    console.error("createProduct failed", error);
+    return { error: actionError(error) };
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/");
   redirect("/admin/products");
 }
 
-export async function updateProduct(id: string, formData: FormData) {
+export async function updateProduct(
+  id: string,
+  _prevState: ProductActionState,
+  formData: FormData,
+): Promise<ProductActionState> {
   await requireAdmin();
-  await prisma.product.update({
-    where: { id },
-    data: productData(formData),
-  });
 
-  await replaceProductMedia(id, formData);
+  try {
+    await prisma.product.update({
+      where: { id },
+      data: productData(formData),
+    });
+
+    await replaceProductMedia(id, formData);
+  } catch (error) {
+    console.error("updateProduct failed", error);
+    return { error: actionError(error) };
+  }
 
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/edit/${id}`);

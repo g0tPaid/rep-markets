@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useActionState, useEffect, useState, type ChangeEvent } from 'react';
+import { useFormStatus } from 'react-dom';
+import type { ProductActionState } from '@/app/admin/actions/products';
 import { QUALITY_OPTIONS } from '@/lib/products';
 
 type CategoryOption = {
@@ -38,19 +40,31 @@ type ProductForForm = {
 };
 
 type ProductFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (state: ProductActionState, formData: FormData) => Promise<ProductActionState>;
   categories: CategoryOption[];
   product?: ProductForForm | null;
   submitLabel: string;
 };
 
 const statuses = ['DRAFT', 'ACTIVE', 'ARCHIVED', 'HIDDEN'];
+const IMAGE_SLOTS = 8;
 
 function fieldValue(value: unknown) {
   return value === null || value === undefined ? '' : String(value);
 }
 
-const IMAGE_SLOTS = 8;
+function SubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+    >
+      {pending ? 'Saving…' : label}
+    </button>
+  );
+}
 
 function ImageUploadField({
   id,
@@ -80,6 +94,13 @@ function ImageUploadField({
     const file = event.target.files?.[0];
     if (!file) {
       setFileName('');
+      setPreviewUrl(existingUrl);
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      setFileName('Too large (max 8MB)');
+      event.target.value = '';
       setPreviewUrl(existingUrl);
       return;
     }
@@ -132,8 +153,14 @@ function ImageUploadField({
 }
 
 export function ProductForm({ action, categories, product, submitLabel }: ProductFormProps) {
+  const [state, formAction] = useActionState(action, {});
+
   return (
-    <form action={action} encType="multipart/form-data" className="space-y-8">
+    <form action={formAction} encType="multipart/form-data" className="space-y-8">
+      {state.error ? (
+        <div className="border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</div>
+      ) : null}
+
       <section className="grid gap-5 border border-black/10 bg-white p-5 md:grid-cols-2">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium" htmlFor="name">
@@ -413,7 +440,8 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         <div className="mb-4">
           <h2 className="text-lg font-semibold">Product images</h2>
           <p className="mt-1 text-sm text-black/55">
-            Upload up to 8 photos. Image 1 is the cover on the shop grid.
+            Upload up to 8 photos (JPG/PNG/WEBP, max 8MB each). Image 1 is the cover. Compress large phone
+            photos if save fails.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -436,9 +464,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
       </section>
 
       <div className="flex justify-end">
-        <button type="submit" className="bg-black px-5 py-3 text-sm font-semibold text-white">
-          {submitLabel}
-        </button>
+        <SubmitButton label={submitLabel} />
       </div>
     </form>
   );

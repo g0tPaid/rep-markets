@@ -19,7 +19,12 @@ export async function saveUploadedImage(file: File | null | undefined, folder = 
     return null;
   }
 
-  if (!ALLOWED_TYPES.has(file.type)) {
+  const type = file.type || '';
+  const extGuess = path.extname(file.name).replace('.', '').toLowerCase();
+  const allowedByExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extGuess);
+  const allowedByType = ALLOWED_TYPES.has(type) || (type === 'application/octet-stream' && allowedByExt);
+
+  if (!allowedByType && !allowedByExt) {
     throw new Error('Only JPG, PNG, WEBP, or GIF images are allowed.');
   }
 
@@ -27,7 +32,7 @@ export async function saveUploadedImage(file: File | null | undefined, folder = 
     throw new Error('Image must be 8MB or smaller.');
   }
 
-  const ext = extensionFor(file.type, file.name);
+  const ext = extensionFor(type, file.name);
   const filename = `${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`;
   const relativeDir = path.join('uploads', folder);
   const absoluteDir = path.join(process.cwd(), 'public', relativeDir);
