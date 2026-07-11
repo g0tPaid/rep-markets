@@ -184,12 +184,30 @@ export async function updateProduct(
   redirect("/admin/products");
 }
 
-export async function deleteProduct(id: string) {
+export async function deleteProduct(formData: FormData) {
   await requireAdmin();
-  await prisma.product.delete({
-    where: { id },
-  });
+
+  const id = stringValue(formData, "id");
+  if (!id) {
+    return;
+  }
+
+  try {
+    await prisma.productMedia.deleteMany({ where: { productId: id } });
+    await prisma.wishlistItem.deleteMany({ where: { productId: id } });
+    await prisma.orderItem.updateMany({
+      where: { productId: id },
+      data: { productId: null },
+    });
+    await prisma.product.delete({ where: { id } });
+  } catch (error) {
+    console.error("deleteProduct failed", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Could not delete product. It may be linked to existing orders.",
+    );
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/");
+  redirect("/admin/products");
 }

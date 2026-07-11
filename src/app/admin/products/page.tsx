@@ -94,8 +94,13 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
                       <Link href={`/admin/products/edit/${product.id}`} className="underline underline-offset-4">
                         Edit
                       </Link>
-                      <form action={deleteProduct.bind(null, product.id)}>
-                        <button className="text-red-700 underline underline-offset-4" type="submit">
+                      <form action={deleteProduct}>
+                        <input type="hidden" name="id" value={product.id} />
+                        <button
+                          className="text-red-700 underline underline-offset-4"
+                          type="submit"
+                          formNoValidate
+                        >
                           Delete
                         </button>
                       </form>
