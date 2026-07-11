@@ -52,22 +52,22 @@ export default async function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-8 text-red-600">
+    <div className="space-y-8 text-blue-700">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm uppercase tracking-[0.25em] text-red-400">Overview</p>
-          <h1 className="mt-2 text-3xl font-semibold text-red-600">Dashboard</h1>
+          <p className="text-sm uppercase tracking-[0.25em] text-blue-400">Overview</p>
+          <h1 className="mt-2 text-3xl font-semibold text-blue-700">Dashboard</h1>
         </div>
         <Link
           href="/admin/products/new"
-          className="inline-flex w-fit bg-red-600 px-4 py-2 text-sm font-medium text-white"
+          className="inline-flex w-fit bg-blue-600 px-4 py-2 text-sm font-medium text-white"
         >
           New product
         </Link>
       </div>
 
       {pendingOrders.length ? (
-        <section className="border-2 border-red-600 bg-red-50 p-5 text-red-700">
+        <section className="border-2 border-blue-600 bg-blue-50 p-5 text-blue-800">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em]">New order notification</p>
@@ -77,7 +77,7 @@ export default async function AdminDashboardPage() {
             </div>
             <Link
               href="/admin/orders?status=PENDING"
-              className="bg-red-600 px-4 py-2 text-sm font-medium text-white"
+              className="bg-blue-600 px-4 py-2 text-sm font-medium text-white"
             >
               View pending
             </Link>
@@ -87,11 +87,11 @@ export default async function AdminDashboardPage() {
               <Link
                 key={order.id}
                 href={`/admin/orders/${order.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 border border-red-200 bg-white px-4 py-3 text-sm text-red-700 hover:border-red-400"
+                className="flex flex-wrap items-center justify-between gap-2 border border-blue-200 bg-white px-4 py-3 text-sm text-blue-800 hover:border-blue-400"
               >
                 <span className="font-medium">{order.number}</span>
                 <span>{order.customerName}</span>
-                <span className="text-red-500">{order.phone}</span>
+                <span className="text-blue-500">{order.phone}</span>
                 <span className="font-medium">{money(Number(order.total), order.currency)}</span>
               </Link>
             ))}
@@ -104,25 +104,25 @@ export default async function AdminDashboardPage() {
           <Link
             key={card.label}
             href={card.href}
-            className="border border-red-200 bg-white p-5 shadow-sm transition hover:border-red-400"
+            className="border border-blue-200 bg-white p-5 shadow-sm transition hover:border-blue-400"
           >
-            <p className="text-sm text-red-400">{card.label}</p>
-            <p className="mt-4 text-3xl font-semibold text-red-600">{card.value}</p>
+            <p className="text-sm text-blue-400">{card.label}</p>
+            <p className="mt-4 text-3xl font-semibold text-blue-700">{card.value}</p>
           </Link>
         ))}
       </section>
 
-      <section className="border border-red-200 bg-white">
-        <div className="border-b border-red-100 p-5">
-          <h2 className="text-lg font-semibold text-red-600">Recent orders</h2>
+      <section className="border border-blue-200 bg-white">
+        <div className="border-b border-blue-100 p-5">
+          <h2 className="text-lg font-semibold text-blue-700">Recent orders</h2>
         </div>
         {recentOrders.length ? (
-          <div className="divide-y divide-red-100">
+          <div className="divide-y divide-blue-100">
             {recentOrders.map((order) => (
               <Link
                 key={order.id}
                 href={`/admin/orders/${order.id}`}
-                className="grid gap-2 p-5 text-sm text-red-700 hover:bg-red-50/60 md:grid-cols-5"
+                className="grid gap-2 p-5 text-sm text-blue-800 hover:bg-blue-50/60 md:grid-cols-5"
               >
                 <span className="font-medium">{order.number}</span>
                 <span>{order.customerName}</span>
@@ -133,7 +133,7 @@ export default async function AdminDashboardPage() {
             ))}
           </div>
         ) : (
-          <p className="p-5 text-sm text-red-400">
+          <p className="p-5 text-sm text-blue-400">
             No orders yet. Metrics will populate as customers place orders.
           </p>
         )}
