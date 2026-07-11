@@ -31,6 +31,19 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     notFound();
   }
 
+  const productForForm = {
+    ...product,
+    sizes: Array.isArray(product.sizes) ? (product.sizes as string[]) : [],
+    colors: Array.isArray(product.colors) ? (product.colors as string[]) : [],
+    tags: Array.isArray(product.tags) ? (product.tags as string[]) : [],
+    qualityPrices:
+      product.qualityPrices && typeof product.qualityPrices === "object" && !Array.isArray(product.qualityPrices)
+        ? (product.qualityPrices as Record<string, number | null>)
+        : {},
+    weight: product.weight ?? null,
+    media: product.media.map((item) => ({ url: item.url, kind: item.kind })),
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -42,7 +55,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       <ProductForm
         action={updateProduct.bind(null, product.id)}
         categories={categories}
-        product={product}
+        product={productForForm}
         submitLabel="Save product"
       />
     </div>

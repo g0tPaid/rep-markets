@@ -123,7 +123,9 @@ model Product {
   longDescription  String?       
   brand            String?
   price            Float       
-  salePrice        Float?      
+  salePrice        Float?
+  /// Per-quality prices: { NORMAL, GOOD, HIGH, ONE_TO_ONE, MIRROR }
+  qualityPrices    Json         @default("{}")
   sku              String?       @unique
   stock            Int           @default(0)
   sizes            Json @default("[]")

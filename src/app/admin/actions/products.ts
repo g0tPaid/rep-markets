@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { ProductStatus } from "@/generated/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { saveUploadedImage } from "@/lib/uploads";
 
 function stringValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -47,6 +48,11 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function fileValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return value instanceof File ? value : null;
+}
+
 function productData(formData: FormData) {
   const name = stringValue(formData, "name");
   const slug = stringValue(formData, "slug") || slugify(name);
@@ -59,6 +65,13 @@ function productData(formData: FormData) {
     brand: optionalString(formData, "brand") ?? "rep.markets",
     price: numberValue(formData, "price"),
     salePrice: optionalNumber(formData, "salePrice"),
+    qualityPrices: {
+      NORMAL: optionalNumber(formData, "qualityPriceNORMAL"),
+      GOOD: optionalNumber(formData, "qualityPriceGOOD"),
+      HIGH: optionalNumber(formData, "qualityPriceHIGH"),
+      ONE_TO_ONE: optionalNumber(formData, "qualityPriceONE_TO_ONE"),
+      MIRROR: optionalNumber(formData, "qualityPriceMIRROR"),
+    },
     sku: optionalString(formData, "sku"),
     stock: numberValue(formData, "stock"),
     sizes: csvValue(formData, "sizes"),
@@ -74,9 +87,15 @@ function productData(formData: FormData) {
   };
 }
 
+async function resolveImageUrl(formData: FormData, fileKey: string, existingKey: string) {
+  const uploaded = await saveUploadedImage(fileValue(formData, fileKey));
+  if (uploaded) return uploaded;
+  return optionalString(formData, existingKey);
+}
+
 async function replaceProductMedia(productId: string, formData: FormData) {
-  const itemImageUrl = optionalString(formData, "itemImageUrl");
-  const modelImageUrl = optionalString(formData, "modelImageUrl");
+  const itemImageUrl = await resolveImageUrl(formData, "itemImage", "existingItemImageUrl");
+  const modelImageUrl = await resolveImageUrl(formData, "modelImage", "existingModelImageUrl");
 
   await prisma.productMedia.deleteMany({
     where: { productId },
@@ -119,6 +138,7 @@ export async function createProduct(formData: FormData) {
   await replaceProductMedia(product.id, formData);
 
   revalidatePath("/admin/products");
+  revalidatePath("/");
   redirect("/admin/products");
 }
 
@@ -133,6 +153,7 @@ export async function updateProduct(id: string, formData: FormData) {
 
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/edit/${id}`);
+  revalidatePath("/");
   redirect("/admin/products");
 }
 
@@ -143,4 +164,5 @@ export async function deleteProduct(id: string) {
   });
 
   revalidatePath("/admin/products");
+  revalidatePath("/");
 }

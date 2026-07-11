@@ -16,7 +16,7 @@ function money(value: number, currency = "USD") {
 export default async function AdminDashboardPage() {
   await requireAdmin();
 
-  const [productCount, orderCount, customerCount, revenue, settings, recentOrders] =
+  const [productCount, orderCount, customerCount, revenue, settings, recentOrders, pendingOrders] =
     await Promise.all([
       prisma.product.count(),
       prisma.order.count(),
@@ -29,6 +29,12 @@ export default async function AdminDashboardPage() {
       prisma.order.findMany({
         take: 5,
         orderBy: { createdAt: "desc" },
+        include: { items: true },
+      }),
+      prisma.order.findMany({
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        take: 8,
         include: { items: true },
       }),
     ]);
@@ -59,6 +65,39 @@ export default async function AdminDashboardPage() {
           New product
         </Link>
       </div>
+
+      {pendingOrders.length ? (
+        <section className="border-2 border-red-600 bg-red-50 p-5 text-red-800">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em]">New order notification</p>
+              <p className="mt-2 text-lg font-semibold">
+                {pendingOrders.length} pending order{pendingOrders.length === 1 ? "" : "s"} — contact for payment &amp; QC
+              </p>
+            </div>
+            <Link
+              href="/admin/orders?status=PENDING"
+              className="bg-red-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              View pending
+            </Link>
+          </div>
+          <div className="mt-4 space-y-2">
+            {pendingOrders.map((order) => (
+              <Link
+                key={order.id}
+                href={`/admin/orders/${order.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 border border-red-200 bg-white px-4 py-3 text-sm text-black hover:border-red-400"
+              >
+                <span className="font-medium">{order.number}</span>
+                <span>{order.customerName}</span>
+                <span className="text-black/60">{order.phone}</span>
+                <span className="font-medium">{money(Number(order.total), order.currency)}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (

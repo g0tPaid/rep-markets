@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { type ProductView, VIEWS } from '@/lib/products';
+import { type ProductView, VIEW_LABELS, VIEWS } from '@/lib/products';
 import { cn } from '@/lib/utils';
 
 type ViewToggleProps = {
@@ -19,11 +19,11 @@ export function ViewToggle({ value, onChange }: ViewToggleProps) {
             type="button"
             onClick={() => onChange(view)}
             className={cn(
-              'relative z-10 h-9 text-[11px] font-semibold tracking-[0.22em] transition-colors',
+              'relative z-10 h-9 text-[11px] font-semibold tracking-[0.18em] transition-colors',
               value === view ? 'text-white' : 'text-black',
             )}
           >
-            {view}
+            {VIEW_LABELS[view]}
             {value === view ? (
               <motion.span
                 layoutId="view-toggle-indicator"
@@ -34,6 +34,11 @@ export function ViewToggle({ value, onChange }: ViewToggleProps) {
           </button>
         ))}
       </div>
+      {value === 'NON_REP' ? (
+        <p className="mt-2 text-center text-[10px] tracking-[0.14em] text-black/45">
+          NON-REP · GOOD QUALITY
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -5,7 +5,14 @@ import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Header } from '@/components/store/header';
 import { ProductCard } from '@/components/store/product-card';
-import { getProductBySlug, mockProducts } from '@/lib/products';
+import {
+  getProductBySlug,
+  getQualityOption,
+  mockProducts,
+  priceForQuality,
+  QUALITY_OPTIONS,
+  type QualityOptionId,
+} from '@/lib/products';
 import { useCart } from '@/lib/store';
 import { cn, formatPrice } from '@/lib/utils';
 
@@ -14,8 +21,9 @@ export default function ProductPage() {
   const product = getProductBySlug(params.slug);
   const addItem = useCart((state) => state.addItem);
   const [selectedSize, setSelectedSize] = useState(product?.sizes[0] ?? 'ONE SIZE');
+  const [selectedQuality, setSelectedQuality] = useState<QualityOptionId>('NORMAL');
   const [quantity, setQuantity] = useState(1);
-  const [galleryView, setGalleryView] = useState<'item' | 'model'>('item');
+  const [galleryView, setGalleryView] = useState<'rep' | 'non-rep'>('rep');
 
   const related = useMemo(
     () => mockProducts.filter((item) => item.category === product?.category && item.id !== product?.id).slice(0, 3),
@@ -39,7 +47,10 @@ export default function ProductPage() {
     );
   }
 
-  const imageSet = galleryView === 'model' ? product.images.model : product.images.item;
+  const imageSet = galleryView === 'non-rep' ? product.images.model : product.images.item;
+  const basePrice = product.salePrice ?? product.price;
+  const quality = getQualityOption(selectedQuality);
+  const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
 
   return (
     <main className="min-h-screen bg-white">
@@ -59,25 +70,33 @@ export default function ProductPage() {
         <div className="mb-5 flex items-center justify-between gap-4">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-muted">{product.category}</p>
           <div className="flex border border-hairline">
-            {(['item', 'model'] as const).map((view) => (
+            {(
+              [
+                { id: 'rep' as const, label: 'Rep' },
+                { id: 'non-rep' as const, label: 'Non-rep' },
+              ] as const
+            ).map((view) => (
               <button
-                key={view}
+                key={view.id}
                 type="button"
-                onClick={() => setGalleryView(view)}
+                onClick={() => setGalleryView(view.id)}
                 className={cn(
                   'px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em]',
-                  galleryView === view && 'bg-black text-white',
+                  galleryView === view.id && 'bg-black text-white',
                 )}
               >
-                {view}
+                {view.label}
               </button>
             ))}
           </div>
         </div>
         <h1 className="font-serif text-5xl leading-[0.92] tracking-[-0.06em]">{product.name}</h1>
-        <p className="mt-4 text-sm font-medium text-red-600">
-          {formatPrice(product.salePrice ?? product.price)}
-        </p>
+        <p className="mt-4 text-sm font-medium text-red-600">{formatPrice(unitPrice)}</p>
+        {selectedQuality !== 'NORMAL' ? (
+          <p className="mt-1 text-xs text-muted">
+            Base {formatPrice(basePrice)} · {quality.label}
+          </p>
+        ) : null}
         <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>
         <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted">Material: {product.material}</p>
       </section>
@@ -101,6 +120,32 @@ export default function ProductPage() {
         </div>
       </section>
 
+      <section className="border-b border-hairline px-4 py-5">
+        <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">QUALITY</p>
+        <div className="grid grid-cols-1 gap-2">
+          {QUALITY_OPTIONS.map((option) => {
+            const optionPrice = priceForQuality(basePrice, option.id, product.qualityPrices);
+            const selected = selectedQuality === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setSelectedQuality(option.id)}
+                className={cn(
+                  'flex items-center justify-between border px-4 py-3 text-left',
+                  selected ? 'border-black bg-black text-white' : 'border-hairline',
+                )}
+              >
+                <span className="text-sm font-medium">{option.label}</span>
+                <span className={cn('text-xs', selected ? 'text-white/80' : 'text-muted')}>
+                  {formatPrice(optionPrice)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="px-4 py-5">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-[11px] font-semibold tracking-[0.22em]">QUANTITY</p>
@@ -121,16 +166,18 @@ export default function ProductPage() {
               productId: product.id,
               slug: product.slug,
               name: product.name,
-              price: product.salePrice ?? product.price,
+              price: unitPrice,
               imageUrl: product.images.item[0],
               size: selectedSize,
               color: product.colors[0],
+              quality: selectedQuality,
+              qualityLabel: quality.label,
               quantity,
             })
           }
           className="w-full bg-black px-5 py-4 text-[11px] font-semibold tracking-[0.22em] text-white"
         >
-          ADD TO CART
+          ADD TO CART · {formatPrice(unitPrice)}
         </button>
         <a
           href="https://wa.me/8618059262730"

@@ -1,10 +1,64 @@
 import { slugify } from '@/lib/utils';
 
 export const CATEGORIES = ['ALL', 'TOP', 'BOTTOM', 'JEWELRY', 'ACCESSORIES', 'HEADWEAR'] as const;
-export const VIEWS = ['ITEMS', 'MODELS'] as const;
+export const VIEWS = ['REPS', 'NON_REP'] as const;
 
 export type ProductCategory = (typeof CATEGORIES)[number];
 export type ProductView = (typeof VIEWS)[number];
+
+export const VIEW_LABELS: Record<ProductView, string> = {
+  REPS: 'REPS',
+  NON_REP: 'NON-REP',
+};
+
+export const QUALITY_OPTIONS = [
+  { id: 'NORMAL', label: 'Normal quality', multiplier: 1 },
+  { id: 'GOOD', label: 'Good quality', multiplier: 1.25 },
+  { id: 'HIGH', label: 'High quality', multiplier: 1.55 },
+  { id: 'ONE_TO_ONE', label: '1:1', multiplier: 1.9 },
+  { id: 'MIRROR', label: 'Mirror', multiplier: 2.25 },
+] as const;
+
+export type QualityOptionId = (typeof QUALITY_OPTIONS)[number]['id'];
+
+export type QualityPriceMap = Partial<Record<QualityOptionId, number | null>>;
+
+export function getQualityOption(id: QualityOptionId | string | undefined) {
+  return QUALITY_OPTIONS.find((option) => option.id === id) ?? QUALITY_OPTIONS[0];
+}
+
+export function parseQualityPrices(value: unknown): QualityPriceMap {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  const source = value as Record<string, unknown>;
+  const prices: QualityPriceMap = {};
+
+  for (const option of QUALITY_OPTIONS) {
+    const raw = source[option.id];
+    if (raw === null || raw === undefined || raw === '') continue;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) {
+      prices[option.id] = parsed;
+    }
+  }
+
+  return prices;
+}
+
+export function priceForQuality(
+  basePrice: number,
+  qualityId: QualityOptionId | string | undefined,
+  qualityPrices?: QualityPriceMap | null,
+) {
+  const quality = getQualityOption(qualityId);
+  const custom = qualityPrices?.[quality.id];
+  if (typeof custom === 'number' && Number.isFinite(custom)) {
+    return Math.round(custom * 100) / 100;
+  }
+  return Math.round(basePrice * quality.multiplier * 100) / 100;
+}
 
 export type StoreProduct = {
   id: string;
@@ -12,6 +66,7 @@ export type StoreProduct = {
   name: string;
   price: number;
   salePrice?: number | null;
+  qualityPrices?: QualityPriceMap;
   category: Exclude<ProductCategory, 'ALL'>;
   description: string;
   material: string;
@@ -46,6 +101,7 @@ export type PrismaProductShape = {
   name: string;
   price: DecimalLike;
   salePrice?: DecimalLike;
+  qualityPrices?: unknown;
   shortDescription?: string | null;
   longDescription?: string | null;
   material?: string | null;
@@ -119,6 +175,7 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     name: product.name,
     price: toNumber(product.price),
     salePrice: product.salePrice ? toNumber(product.salePrice) : null,
+    qualityPrices: parseQualityPrices(product.qualityPrices),
     category: toCategory(product.category?.slug || product.category?.name || product.tags?.[0]),
     description:
       product.longDescription ||
@@ -261,7 +318,7 @@ export const mockProducts: StoreProduct[] = [
   },
 ];
 
-export function filterProducts(products: StoreProduct[], category = 'ALL', view: ProductView = 'ITEMS') {
+export function filterProducts(products: StoreProduct[], category = 'ALL', view: ProductView = 'REPS') {
   const filtered =
     category.toUpperCase() === 'ALL'
       ? products
@@ -269,7 +326,7 @@ export function filterProducts(products: StoreProduct[], category = 'ALL', view:
 
   return filtered.map((product) => ({
     ...product,
-    image: view === 'MODELS' ? product.images.model[0] : product.images.item[0],
+    image: view === 'NON_REP' ? product.images.model[0] : product.images.item[0],
   }));
 }
 

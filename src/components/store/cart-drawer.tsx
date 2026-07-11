@@ -46,7 +46,10 @@ export function CartDrawer() {
               {items.length ? (
                 <div className="space-y-4">
                   {items.map((item) => (
-                    <div key={`${item.productId}-${item.size ?? 'default'}`} className="grid grid-cols-[72px_1fr] gap-3">
+                    <div
+                      key={`${item.productId}-${item.size ?? 'default'}-${item.quality ?? 'default'}`}
+                      className="grid grid-cols-[72px_1fr] gap-3"
+                    >
                       <div
                         className="aspect-[3/4] bg-surface bg-cover bg-center"
                         style={{ backgroundImage: item.imageUrl ? `url("${item.imageUrl}")` : undefined }}
@@ -56,7 +59,9 @@ export function CartDrawer() {
                           <div>
                             <p className="text-xs font-medium uppercase tracking-[0.12em]">{item.name}</p>
                             <p className="mt-1 text-xs text-muted">
-                              {[item.size, item.color].filter(Boolean).join(' / ') || 'ONE SIZE'}
+                              {[item.size, item.qualityLabel || item.quality, item.color]
+                                .filter(Boolean)
+                                .join(' / ') || 'ONE SIZE'}
                             </p>
                           </div>
                           <p className="text-xs">{formatPrice(item.price * item.quantity)}</p>
@@ -66,7 +71,9 @@ export function CartDrawer() {
                             <button
                               type="button"
                               className="size-8 text-sm"
-                              onClick={() => setQuantity(item.productId, item.quantity - 1, item.size)}
+                              onClick={() =>
+                                setQuantity(item.productId, item.quantity - 1, item.size, item.quality)
+                              }
                               aria-label={`Decrease ${item.name} quantity`}
                             >
                               -
@@ -75,7 +82,9 @@ export function CartDrawer() {
                             <button
                               type="button"
                               className="size-8 text-sm"
-                              onClick={() => setQuantity(item.productId, item.quantity + 1, item.size)}
+                              onClick={() =>
+                                setQuantity(item.productId, item.quantity + 1, item.size, item.quality)
+                              }
                               aria-label={`Increase ${item.name} quantity`}
                             >
                               +
@@ -83,7 +92,7 @@ export function CartDrawer() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => removeItem(item.productId, item.size)}
+                            onClick={() => removeItem(item.productId, item.size, item.quality)}
                             className="text-[10px] font-medium tracking-[0.16em] text-muted"
                           >
                             REMOVE

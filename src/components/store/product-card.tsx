@@ -8,13 +8,13 @@ import { cn, formatPrice } from '@/lib/utils';
 
 type ProductCardProps = {
   product: StoreProduct & { image?: string };
-  view?: 'ITEMS' | 'MODELS';
+  view?: 'REPS' | 'NON_REP';
 };
 
-export function ProductCard({ product, view = 'ITEMS' }: ProductCardProps) {
+export function ProductCard({ product, view = 'REPS' }: ProductCardProps) {
   const toggle = useWishlist((state) => state.toggle);
   const liked = useWishlist((state) => state.has(product.id));
-  const image = product.image || (view === 'MODELS' ? product.images.model[0] : product.images.item[0]);
+  const image = product.image || (view === 'NON_REP' ? product.images.model[0] : product.images.item[0]);
 
   return (
     <article className="group min-w-0">
