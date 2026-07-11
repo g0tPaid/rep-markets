@@ -10,14 +10,14 @@ type CategoryNavProps = {
 
 export function CategoryNav({ value, onChange }: CategoryNavProps) {
   return (
-    <nav className="no-scrollbar flex gap-2 overflow-x-auto border-b border-hairline px-4 py-2" aria-label="Product categories">
+    <nav className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-hairline px-4 py-1.5" aria-label="Product categories">
       {CATEGORIES.map((category) => (
         <button
           key={category}
           type="button"
           onClick={() => onChange(category)}
           className={cn(
-            'shrink-0 rounded-full border px-4 py-2 text-[11px] font-medium tracking-[0.18em] transition',
+            'shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-medium tracking-[0.14em] transition',
             value === category
               ? 'border-black bg-black text-white'
               : 'border-hairline bg-white text-black hover:border-black',
