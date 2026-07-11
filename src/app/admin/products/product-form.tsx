@@ -4,6 +4,7 @@ import {
   useActionState,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
   type ChangeEvent,
@@ -225,6 +226,8 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
   const [pending, startTransition] = useTransition();
   const [clientError, setClientError] = useState('');
   const [progress, setProgress] = useState<{ pct: number; label: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const wasPendingRef = useRef(false);
 
   const initialMode = guessSizeMode(product?.sizes ?? []);
   const [sizeMode, setSizeMode] = useState<'clothes' | 'shoes'>(initialMode);
@@ -250,7 +253,10 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting || pending) return;
+
     setClientError('');
+    setSubmitting(true);
     setProgress({ pct: 4, label: 'Preparing…' });
 
     const form = event.currentTarget;
@@ -260,6 +266,9 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
     const uploads = files
       .map((file, index) => (file ? { file, index } : null))
       .filter(Boolean) as Array<{ file: File; index: number }>;
+
+    // Snapshot current URLs so async setState does not leave empty image slots.
+    const urls = [...existingUrls];
 
     try {
       for (let i = 0; i < uploads.length; i += 1) {
@@ -278,19 +287,15 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           });
         });
 
+        urls[index] = url;
         formData.set(`existingImageUrl${index}`, url);
-        setExistingUrls((current) => {
-          const next = [...current];
-          next[index] = url;
-          return next;
-        });
       }
+
+      setExistingUrls(urls);
 
       for (let index = 0; index < IMAGE_SLOTS; index += 1) {
         formData.delete(`image${index}`);
-        if (!formData.get(`existingImageUrl${index}`)) {
-          formData.set(`existingImageUrl${index}`, existingUrls[index] || '');
-        }
+        formData.set(`existingImageUrl${index}`, urls[index] || '');
       }
 
       setProgress({ pct: 92, label: 'Saving product…' });
@@ -299,23 +304,30 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
       });
     } catch (error) {
       setProgress(null);
+      setSubmitting(false);
       setClientError(error instanceof Error ? error.message : 'Upload failed.');
     }
   }
 
   useEffect(() => {
-    if (state.error) setProgress(null);
-  }, [state.error]);
+    if (pending) {
+      wasPendingRef.current = true;
+      return;
+    }
 
-  useEffect(() => {
-    if (!pending && progress && !state.error) {
-      // Keep bar visible briefly while redirect happens
+    if (!wasPendingRef.current) return;
+    wasPendingRef.current = false;
+
+    if (state.error) {
+      setProgress(null);
+    } else {
       setProgress({ pct: 100, label: 'Done' });
     }
-  }, [pending, progress, state.error]);
+    setSubmitting(false);
+  }, [pending, state.error]);
 
   const error = clientError || state.error;
-  const busy = pending || Boolean(progress && progress.pct < 100);
+  const busy = submitting || pending;
 
   return (
     <form onSubmit={onSubmit} encType="multipart/form-data" className="space-y-8">

@@ -143,7 +143,12 @@ export async function createProduct(
 ): Promise<ProductActionState> {
   await requireAdmin();
 
-  const data = productData(formData);
+  let data: ReturnType<typeof productData>;
+  try {
+    data = productData(formData);
+  } catch (error) {
+    return { error: actionError(error) };
+  }
 
   try {
     const product = await prisma.product.create({
@@ -169,7 +174,12 @@ export async function updateProduct(
 ): Promise<ProductActionState> {
   await requireAdmin();
 
-  const data = productData(formData);
+  let data: ReturnType<typeof productData>;
+  try {
+    data = productData(formData);
+  } catch (error) {
+    return { error: actionError(error) };
+  }
 
   try {
     await prisma.product.update({
