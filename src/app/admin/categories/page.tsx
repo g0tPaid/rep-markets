@@ -27,8 +27,10 @@ export default async function AdminCategoriesPage() {
         <p className="text-sm uppercase tracking-[0.25em] text-black/45">Catalog</p>
         <h1 className="mt-2 text-3xl font-semibold">Categories</h1>
         <p className="mt-2 text-sm text-black/55">
-          Use <span className="font-medium text-black">REP</span> as the parent category. Put products in
-          children like T-SHIRTS, SHOES, CHAINS.
+          Use <span className="font-medium text-black">REP</span> and{" "}
+          <span className="font-medium text-black">NON-REP</span> as parent categories. Put products in
+          children (T-SHIRTS, SHOES, …) under the right parent — the home page REPS / NON-REP toggle
+          follows that.
         </p>
       </div>
 

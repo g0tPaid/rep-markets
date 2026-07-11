@@ -1,9 +1,8 @@
 import { slugify } from '@/lib/utils';
 
-/** Nav: ALL + REP (parent) + leaf product categories */
+/** Product type pills (under the selected REP / NON-REP line) */
 export const CATEGORIES = [
   'ALL',
-  'REP',
   'T-SHIRTS',
   'SHOES',
   'CHAINS',
@@ -12,10 +11,18 @@ export const CATEGORIES = [
   'HEADWEAR',
 ] as const;
 
-export type ProductCategory = (typeof CATEGORIES)[number];
-export type LeafCategory = Exclude<ProductCategory, 'ALL' | 'REP'>;
+export const VIEWS = ['REPS', 'NON_REP'] as const;
 
-/** Leaf categories that live under REP */
+export type ProductCategory = (typeof CATEGORIES)[number];
+export type ProductView = (typeof VIEWS)[number];
+export type LeafCategory = Exclude<ProductCategory, 'ALL'>;
+export type CatalogLine = 'REP' | 'NON_REP';
+
+export const VIEW_LABELS: Record<ProductView, string> = {
+  REPS: 'REPS',
+  NON_REP: 'NON-REP',
+};
+
 export const REP_CHILDREN: LeafCategory[] = [
   'T-SHIRTS',
   'SHOES',
@@ -81,6 +88,8 @@ export type StoreProduct = {
   price: number;
   salePrice?: number | null;
   qualityPrices?: QualityPriceMap;
+  /** REP or NON-REP catalog line (from parent category in admin) */
+  line: CatalogLine;
   category: LeafCategory;
   description: string;
   material: string;
@@ -105,6 +114,10 @@ type PrismaMediaShape = {
 type PrismaCategoryShape = {
   name?: string | null;
   slug?: string | null;
+  parent?: {
+    name?: string | null;
+    slug?: string | null;
+  } | null;
 };
 
 export type PrismaProductShape = {
@@ -148,6 +161,21 @@ function toNumber(value: DecimalLike) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function toCatalogLine(category?: PrismaCategoryShape | null): CatalogLine {
+  const bits = [
+    category?.slug,
+    category?.name,
+    category?.parent?.slug,
+    category?.parent?.name,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toUpperCase();
+
+  if (bits.includes('NON')) return 'NON_REP';
+  return 'REP';
+}
+
 function toCategory(input?: string | null): LeafCategory {
   const normalized = (input || '').toUpperCase().replace(/_/g, '-').replace(/\s+/g, '-');
   if (normalized.includes('SHOE')) return 'SHOES';
@@ -184,6 +212,7 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     price: toNumber(product.price),
     salePrice: product.salePrice ? toNumber(product.salePrice) : null,
     qualityPrices: parseQualityPrices(product.qualityPrices),
+    line: toCatalogLine(product.category),
     category: toCategory(product.category?.slug || product.category?.name || product.tags?.[0]),
     description:
       product.longDescription ||
@@ -205,6 +234,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'studio-poplin-shirt',
     name: 'Studio Poplin Shirt',
     price: 128,
+    line: 'REP' as const,
     category: 'T-SHIRTS',
     description: 'A crisp oversized shirt with a softened collar, cut for polished everyday layering.',
     material: 'Organic cotton poplin',
@@ -220,6 +250,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'column-wool-trouser',
     name: 'Column Wool Trouser',
     price: 186,
+    line: 'REP' as const,
     category: 'BOTTOM',
     description: 'Straight-leg trousers with a long crease, designed to sit cleanly over low shoes.',
     material: 'Lightweight wool twill',
@@ -233,6 +264,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'utility-tank',
     name: 'Utility Tank',
     price: 64,
+    line: 'REP' as const,
     category: 'T-SHIRTS',
     description: 'A ribbed tank with a high neckline and compact shoulder line.',
     material: 'Ribbed cotton jersey',
@@ -246,6 +278,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'flat-chain-bracelet',
     name: 'Flat Chain Bracelet',
     price: 92,
+    line: 'REP' as const,
     category: 'CHAINS',
     description: 'A low-profile chain bracelet with a polished finish and concealed clasp.',
     material: 'Stainless steel',
@@ -260,6 +293,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'market-canvas-tote',
     name: 'Market Canvas Tote',
     price: 78,
+    line: 'REP' as const,
     category: 'ACCESSORIES',
     description: 'A structured tote with reinforced handles and a quiet interior pocket.',
     material: 'Heavy cotton canvas',
@@ -273,6 +307,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'canvas-field-cap',
     name: 'Canvas Field Cap',
     price: 58,
+    line: 'REP' as const,
     category: 'HEADWEAR',
     description: 'A soft field cap with a short brim and unlined crown.',
     material: 'Washed cotton canvas',
@@ -286,6 +321,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'paperweight-hoop-earrings',
     name: 'Paperweight Hoop Earrings',
     price: 86,
+    line: 'REP' as const,
     category: 'CHAINS',
     description: 'Thick polished hoops with a solid feel and a hinged closure.',
     material: 'Brass with silver finish',
@@ -299,6 +335,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'soft-pleat-short',
     name: 'Soft Pleat Short',
     price: 112,
+    line: 'REP' as const,
     category: 'BOTTOM',
     description: 'Knee-length shorts with a soft front pleat and clean side seam.',
     material: 'Tropical wool',
@@ -312,6 +349,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'workroom-cardigan',
     name: 'Workroom Cardigan',
     price: 154,
+    line: 'REP' as const,
     category: 'T-SHIRTS',
     description: 'A fine-gauge cardigan with a deep V and slightly extended sleeves.',
     material: 'Merino wool',
@@ -326,6 +364,7 @@ export const mockProducts: StoreProduct[] = [
     slug: 'court-runner',
     name: 'Court Runner',
     price: 140,
+    line: 'REP' as const,
     category: 'SHOES',
     description: 'A clean low runner with a quiet sole and everyday upper.',
     material: 'Leather and mesh',
@@ -337,13 +376,18 @@ export const mockProducts: StoreProduct[] = [
   },
 ];
 
-export function filterProducts(products: StoreProduct[], category = 'ALL') {
+export function filterProducts(
+  products: StoreProduct[],
+  category = 'ALL',
+  view: ProductView = 'REPS',
+) {
   const selected = category.toUpperCase();
+  const line: CatalogLine = view === 'NON_REP' ? 'NON_REP' : 'REP';
+
+  const byLine = products.filter((product) => product.line === line);
 
   const filtered =
-    selected === 'ALL' || selected === 'REP'
-      ? products
-      : products.filter((product) => product.category === selected);
+    selected === 'ALL' ? byLine : byLine.filter((product) => product.category === selected);
 
   return filtered.map((product) => ({
     ...product,

@@ -6,26 +6,33 @@ import { Header } from '@/components/store/header';
 import { OffersBanner } from '@/components/store/offers-banner';
 import { ProductGrid } from '@/components/store/product-grid';
 import { SearchOverlay } from '@/components/store/search-overlay';
-import { filterProducts, mockProducts, type ProductCategory } from '@/lib/products';
+import { ViewToggle } from '@/components/store/view-toggle';
+import { filterProducts, mockProducts, type ProductCategory, type ProductView } from '@/lib/products';
 
 const FEED_PAGES = 3;
 
 export default function Home() {
   const [category, setCategory] = useState<ProductCategory>('ALL');
+  const [view, setView] = useState<ProductView>('REPS');
   const [page, setPage] = useState(1);
 
   const products = useMemo(() => {
-    const filtered = filterProducts(mockProducts, category);
+    const filtered = filterProducts(mockProducts, category, view);
     return Array.from({ length: page }, (_, index) =>
       filtered.map((product) => ({
         ...product,
         id: index === 0 ? product.id : `${product.id}-${index}`,
       })),
     ).flat();
-  }, [category, page]);
+  }, [category, page, view]);
 
   function changeCategory(nextCategory: ProductCategory) {
     setCategory(nextCategory);
+    setPage(1);
+  }
+
+  function changeView(nextView: ProductView) {
+    setView(nextView);
     setPage(1);
   }
 
@@ -59,8 +66,9 @@ export default function Home() {
           </p>
         </aside>
       </section>
+      <ViewToggle value={view} onChange={changeView} />
       <CategoryNav value={category} onChange={changeCategory} />
-      <SearchOverlay products={mockProducts} />
+      <SearchOverlay products={filterProducts(mockProducts, 'ALL', view)} />
       <ProductGrid products={products} />
       {products.length ? (
         <div className="px-4 pb-6">

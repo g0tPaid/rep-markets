@@ -196,6 +196,24 @@ async function main() {
     },
   });
 
+  await prisma.category.upsert({
+    where: { slug: "non-rep" },
+    update: {
+      name: "NON-REP",
+      sortOrder: 1,
+      isVisible: true,
+      parentId: null,
+      description: "High-quality non-rep pieces. Add child categories or assign products here.",
+    },
+    create: {
+      name: "NON-REP",
+      slug: "non-rep",
+      sortOrder: 1,
+      isVisible: true,
+      description: "High-quality non-rep pieces. Add child categories or assign products here.",
+    },
+  });
+
   for (const category of leafCategories) {
     await prisma.category.upsert({
       where: { slug: category.slug },

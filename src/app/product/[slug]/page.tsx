@@ -73,7 +73,7 @@ export default function ProductPage() {
 
       <section className="px-4 py-7">
         <p className="mb-5 text-[11px] font-semibold tracking-[0.22em] text-muted">
-          REP · {product.category}
+          {product.line === 'NON_REP' ? 'NON-REP' : 'REP'} · {product.category}
         </p>
         <h1 className="font-serif text-5xl leading-[0.92] tracking-[-0.06em]">{product.name}</h1>
         <p className="mt-4 text-sm font-medium text-red-600">{formatPrice(unitPrice)}</p>
