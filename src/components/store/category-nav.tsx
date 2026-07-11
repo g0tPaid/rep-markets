@@ -10,7 +10,7 @@ type CategoryNavProps = {
 
 export function CategoryNav({ value, onChange }: CategoryNavProps) {
   return (
-    <nav className="no-scrollbar flex gap-2 overflow-x-auto border-b border-hairline px-4 py-3" aria-label="Product categories">
+    <nav className="no-scrollbar flex gap-2 overflow-x-auto border-b border-hairline px-4 py-2" aria-label="Product categories">
       {CATEGORIES.map((category) => (
         <button
           key={category}

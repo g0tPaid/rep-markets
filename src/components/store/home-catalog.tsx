@@ -49,17 +49,17 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
     <main className="min-h-screen bg-white">
       <Header />
       <OffersBanner />
-      <section className="px-4 pb-7 pt-4">
+      <section className="px-4 pb-3 pt-2">
         <h1 className="text-center font-serif text-[44px] leading-[0.95] tracking-[-0.05em]">
           Anything
           <br />
           &amp; Everything
         </h1>
-        <p className="mt-3 text-center text-[11px] leading-4 text-black/55">
+        <p className="mt-1.5 text-center text-[11px] leading-4 text-black/55">
           Office and warehouse in China and Dubai
         </p>
-        <div className="mx-auto mt-6 max-w-[340px] space-y-3 text-center">
-          <p className="border border-black/10 bg-white px-4 py-3 text-[11px] leading-5 text-black/75">
+        <div className="mx-auto mt-3 max-w-[340px] text-center">
+          <p className="border border-black/10 bg-white px-4 py-2.5 text-[11px] leading-5 text-black/75">
             There are some hidden coupon codes on this website. Find one, WhatsApp us, and you can get
             up to <span className="font-semibold text-black">50% off</span> — and sometimes{' '}
             <span className="font-semibold text-black">free shipping</span>.
@@ -68,16 +68,16 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
         <aside
           role="note"
           aria-label="Shipping time notice"
-          className="mx-auto mt-5 w-full max-w-[360px] border border-red-600 bg-red-50 px-3 py-2.5 text-center text-red-700"
+          className="mx-auto mt-3 w-full max-w-[360px] border border-red-600 bg-red-50 px-3 py-2 text-center text-red-700"
         >
           <p className="text-[9px] font-semibold uppercase tracking-[0.18em]">⚠ Shipping notice</p>
-          <p className="mt-1.5 text-[10px] leading-4">
+          <p className="mt-1 text-[10px] leading-4">
             See, these factories are located in villages. We source directly from factories. When they
             send an item, it takes 2 to 3 days to reach us. Then we send you QC videos — that takes 1
             day. Shipping takes another 2 days, and then usually it takes 9 to 14 days to reach your
             place.
           </p>
-          <p className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.06em]">
+          <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em]">
             This is true numbers and no overpromises.
           </p>
         </aside>

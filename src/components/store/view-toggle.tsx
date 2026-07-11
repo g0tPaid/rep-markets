@@ -11,7 +11,7 @@ type ViewToggleProps = {
 
 export function ViewToggle({ value, onChange }: ViewToggleProps) {
   return (
-    <div className="px-4 pb-2 pt-1">
+    <div className="px-4 pb-1.5 pt-0">
       <div className="relative grid grid-cols-2 border border-hairline">
         {VIEWS.map((view) => (
           <button
@@ -19,7 +19,7 @@ export function ViewToggle({ value, onChange }: ViewToggleProps) {
             type="button"
             onClick={() => onChange(view)}
             className={cn(
-              'relative z-10 px-4 py-3 text-[11px] font-semibold tracking-[0.2em] transition',
+              'relative z-10 px-4 py-2.5 text-[11px] font-semibold tracking-[0.2em] transition',
               value === view ? 'text-white' : 'text-black',
             )}
           >
@@ -35,7 +35,7 @@ export function ViewToggle({ value, onChange }: ViewToggleProps) {
         ))}
       </div>
       {value === 'NON_REP' ? (
-        <p className="mt-2 text-center text-[10px] tracking-[0.14em] text-muted">
+        <p className="mt-1.5 text-center text-[10px] tracking-[0.14em] text-muted">
           High-quality non-rep pieces
         </p>
       ) : null}
