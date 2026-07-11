@@ -43,7 +43,7 @@ function AdminLoginForm() {
       >
         <div className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-black/50">
-            rep.things
+            rep.markets
           </p>
           <h1 className="mt-3 text-2xl font-semibold">Admin login</h1>
         </div>

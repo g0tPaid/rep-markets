@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 function value(formData: FormData, key: string) {
@@ -22,6 +23,7 @@ function slugify(input: string) {
 }
 
 export async function createCategory(formData: FormData) {
+  await requireAdmin();
   const name = value(formData, "name");
 
   await prisma.category.create({
@@ -39,6 +41,7 @@ export async function createCategory(formData: FormData) {
 }
 
 export async function updateCategory(id: string, formData: FormData) {
+  await requireAdmin();
   const name = value(formData, "name");
 
   await prisma.category.update({
@@ -57,6 +60,7 @@ export async function updateCategory(id: string, formData: FormData) {
 }
 
 export async function deleteCategory(id: string) {
+  await requireAdmin();
   await prisma.category.delete({
     where: { id },
   });

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, DM_Sans } from 'next/font/google';
 import { Providers } from '@/components/providers';
-import { SiteShell } from '@/components/store/site-shell';
 import './globals.css';
 
 const sans = DM_Sans({
@@ -23,7 +22,7 @@ export const metadata: Metadata = {
     template: '%s · rep.markets',
   },
   description: 'Quiet essentials. Luxury minimal fashion for daily use.',
-  metadataBase: new URL('https://practicalthings.store'),
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://rep.markets'),
   openGraph: {
     title: 'rep.markets',
     description: 'Quiet essentials. Luxury minimal fashion for daily use.',
@@ -46,9 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sans.variable} ${editorial.variable} antialiased`}>
-        <Providers>
-          <SiteShell>{children}</SiteShell>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

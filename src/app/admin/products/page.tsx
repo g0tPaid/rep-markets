@@ -108,7 +108,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
         </div>
         {!products.length ? (
           <p className="border-t border-black/10 p-5 text-sm text-black/55">
-            No products found. Create your first rep.things product to start the catalog.
+            No products found. Create your first rep.markets product to start the catalog.
           </p>
         ) : null}
       </section>

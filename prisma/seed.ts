@@ -4,7 +4,7 @@ import { PrismaClient } from "../src/generated/prisma";
 
 const prisma = new PrismaClient();
 
-const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase() || "admin@rep.things";
+const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase() || "admin@rep.markets";
 const adminPassword = process.env.ADMIN_PASSWORD || "change-this-password";
 
 const categories = [
@@ -17,7 +17,7 @@ const categories = [
 
 const products = [
   {
-    name: "rep.things Boxy Cotton Shirt",
+    name: "rep.markets Boxy Cotton Shirt",
     slug: "boxy-cotton-shirt",
     categorySlug: "top",
     price: "78.00",
@@ -31,7 +31,7 @@ const products = [
       "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Ribbed Tank",
+    name: "rep.markets Ribbed Tank",
     slug: "ribbed-tank",
     categorySlug: "top",
     price: "42.00",
@@ -45,7 +45,7 @@ const products = [
       "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Soft Knit Cardigan",
+    name: "rep.markets Soft Knit Cardigan",
     slug: "soft-knit-cardigan",
     categorySlug: "top",
     price: "96.00",
@@ -59,7 +59,7 @@ const products = [
       "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Relaxed Utility Trouser",
+    name: "rep.markets Relaxed Utility Trouser",
     slug: "relaxed-utility-trouser",
     categorySlug: "bottom",
     price: "112.00",
@@ -73,7 +73,7 @@ const products = [
       "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Everyday Wide Denim",
+    name: "rep.markets Everyday Wide Denim",
     slug: "everyday-wide-denim",
     categorySlug: "bottom",
     price: "128.00",
@@ -87,7 +87,7 @@ const products = [
       "https://images.unsplash.com/photo-1506629905607-d405d7d3b0d2?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Column Skirt",
+    name: "rep.markets Column Skirt",
     slug: "column-skirt",
     categorySlug: "bottom",
     price: "88.00",
@@ -101,7 +101,7 @@ const products = [
       "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Small Hoop Pair",
+    name: "rep.markets Small Hoop Pair",
     slug: "small-hoop-pair",
     categorySlug: "jewelry",
     price: "54.00",
@@ -115,7 +115,7 @@ const products = [
       "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Canvas Market Tote",
+    name: "rep.markets Canvas Market Tote",
     slug: "canvas-market-tote",
     categorySlug: "accessories",
     price: "68.00",
@@ -129,7 +129,7 @@ const products = [
       "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    name: "rep.things Cotton Field Cap",
+    name: "rep.markets Cotton Field Cap",
     slug: "cotton-field-cap",
     categorySlug: "headwear",
     price: "48.00",
@@ -150,12 +150,12 @@ async function main() {
   await prisma.user.upsert({
     where: { email: adminEmail },
     update: {
-      name: "rep.things Admin",
+      name: "rep.markets Admin",
       passwordHash,
       role: "ADMIN",
     },
     create: {
-      name: "rep.things Admin",
+      name: "rep.markets Admin",
       email: adminEmail,
       passwordHash,
       role: "ADMIN",
@@ -165,15 +165,15 @@ async function main() {
   await prisma.siteSettings.upsert({
     where: { id: "default" },
     update: {
-      siteName: "rep.things",
-      metaTitle: "rep.things Fashion Store",
+      siteName: "rep.markets",
+      metaTitle: "rep.markets Fashion Store",
       metaDescription: "Clean, wearable fashion pieces for daily life.",
       currency: "USD",
     },
     create: {
       id: "default",
-      siteName: "rep.things",
-      metaTitle: "rep.things Fashion Store",
+      siteName: "rep.markets",
+      metaTitle: "rep.markets Fashion Store",
       metaDescription: "Clean, wearable fashion pieces for daily life.",
       currency: "USD",
     },
@@ -210,15 +210,15 @@ async function main() {
       where: { slug: product.slug },
       update: {
         name: product.name,
-        shortDescription: "A practical wardrobe piece from rep.things.",
+        shortDescription: "A practical wardrobe piece from rep.markets.",
         longDescription:
-          "Designed for regular wear with simple styling, comfortable materials, and a quiet rep.things finish.",
-        brand: "rep.things",
-        price: product.price,
+          "Designed for regular wear with simple styling, comfortable materials, and a quiet rep.markets finish.",
+        brand: "rep.markets",
+        price: Number(product.price),
         stock: product.stock,
         sizes: product.sizes,
         colors: product.colors,
-        tags: ["rep.things", "fashion", product.categorySlug],
+        tags: ["rep.markets", "fashion", product.categorySlug],
         material: product.material,
         status: "ACTIVE",
         featured: index < 4,
@@ -229,16 +229,16 @@ async function main() {
       create: {
         name: product.name,
         slug: product.slug,
-        shortDescription: "A practical wardrobe piece from rep.things.",
+        shortDescription: "A practical wardrobe piece from rep.markets.",
         longDescription:
-          "Designed for regular wear with simple styling, comfortable materials, and a quiet rep.things finish.",
-        brand: "rep.things",
-        price: product.price,
+          "Designed for regular wear with simple styling, comfortable materials, and a quiet rep.markets finish.",
+        brand: "rep.markets",
+        price: Number(product.price),
         sku: `PT-${String(index + 1).padStart(3, "0")}`,
         stock: product.stock,
         sizes: product.sizes,
         colors: product.colors,
-        tags: ["rep.things", "fashion", product.categorySlug],
+        tags: ["rep.markets", "fashion", product.categorySlug],
         material: product.material,
         status: "ACTIVE",
         featured: index < 4,

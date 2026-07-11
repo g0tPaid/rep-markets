@@ -27,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-black/10 bg-white p-6 lg:block">
         <Link href="/admin" className="block">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-black/45">
-            rep.things
+            rep.markets
           </p>
           <p className="mt-2 text-xl font-semibold">Admin</p>
         </Link>
@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="sticky top-0 z-10 border-b border-black/10 bg-white/95 px-5 py-4 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-4">
             <Link href="/admin" className="font-semibold">
-              rep.things Admin
+              rep.markets Admin
             </Link>
             <button
               type="button"

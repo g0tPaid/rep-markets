@@ -1,26 +1,46 @@
 # rep.markets
 
-Mobile-first fashion storefront for **rep.markets**.
+Mobile-first fashion storefront + admin dashboard.
 
 ## Stack
 
 - Next.js 15
-- TypeScript
+- Prisma + PostgreSQL
+- NextAuth (admin login)
 - Tailwind CSS
-- Framer Motion
-- Zustand
+- Zustand cart
 
 ## Local development
 
 ```bash
 pnpm install
+cp .env.example .env
+# set DATABASE_URL to a local Postgres URL
+pnpm db:push
+pnpm db:seed
 pnpm dev
 ```
 
-Open [http://localhost:3002](http://localhost:3002).
+- Store: http://localhost:3002  
+- Admin: http://localhost:3002/admin/login  
 
-## Notes
+## Railway deploy
 
-- Storefront currently uses a mock catalog for local UI development.
-- Admin / Prisma / NextAuth code is staged under `_admin_pending` and `_auth_pending` for the next integration pass.
-- WhatsApp support contact: `+8618059262730` (AJ), linked from product pages.
+1. Create a new Railway project from GitHub repo `g0tPaid/rep-markets`
+2. Add a **PostgreSQL** plugin and link it (sets `DATABASE_URL`)
+3. Set variables:
+   - `NEXTAUTH_URL` = your Railway public URL (later your custom domain)
+   - `NEXTAUTH_SECRET` = long random string
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` = your admin login
+4. Deploy
+5. After first deploy, run seed once from Railway shell or locally against prod DB:
+
+```bash
+pnpm db:seed
+```
+
+6. Open `/admin/login` and sign in
+
+## Custom domain
+
+Railway service → Settings → Networking → Custom Domain → add your domain → copy the DNS records into your registrar.

@@ -12,7 +12,7 @@ export default async function AdminSettingsPage() {
       where: { id: "default" },
     })) ??
     ({
-      siteName: "rep.things",
+      siteName: "rep.markets",
       logoUrl: "",
       faviconUrl: "",
       instagramUrl: "",

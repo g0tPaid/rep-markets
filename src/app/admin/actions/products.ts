@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ProductStatus } from "@/generated/prisma";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 function stringValue(formData: FormData, key: string) {
@@ -49,16 +50,15 @@ function slugify(value: string) {
 function productData(formData: FormData) {
   const name = stringValue(formData, "name");
   const slug = stringValue(formData, "slug") || slugify(name);
-  const salePrice = optionalString(formData, "salePrice");
 
   return {
     name,
     slug,
     shortDescription: optionalString(formData, "shortDescription"),
     longDescription: optionalString(formData, "longDescription"),
-    brand: optionalString(formData, "brand") ?? "rep.things",
-    price: stringValue(formData, "price") || "0",
-    salePrice: salePrice ? salePrice : null,
+    brand: optionalString(formData, "brand") ?? "rep.markets",
+    price: numberValue(formData, "price"),
+    salePrice: optionalNumber(formData, "salePrice"),
     sku: optionalString(formData, "sku"),
     stock: numberValue(formData, "stock"),
     sizes: csvValue(formData, "sizes"),
@@ -111,6 +111,7 @@ async function replaceProductMedia(productId: string, formData: FormData) {
 }
 
 export async function createProduct(formData: FormData) {
+  await requireAdmin();
   const product = await prisma.product.create({
     data: productData(formData),
   });
@@ -122,6 +123,7 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
+  await requireAdmin();
   await prisma.product.update({
     where: { id },
     data: productData(formData),
@@ -135,6 +137,7 @@ export async function updateProduct(id: string, formData: FormData) {
 }
 
 export async function deleteProduct(id: string) {
+  await requireAdmin();
   await prisma.product.delete({
     where: { id },
   });

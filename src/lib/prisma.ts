@@ -1,9 +1,13 @@
-// Temporary stub until Prisma packages install successfully.
-export const prisma = new Proxy(
-  {},
-  {
-    get() {
-      throw new Error('Database is not connected yet. Storefront uses mock catalog data.');
-    },
-  },
-) as never;
+import { PrismaClient } from '@/generated/prisma';
+
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}

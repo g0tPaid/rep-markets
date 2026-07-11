@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 function value(formData: FormData, key: string) {
@@ -15,10 +16,11 @@ function optionalValue(formData: FormData, key: string) {
 }
 
 export async function updateSettings(formData: FormData) {
+  await requireAdmin();
   await prisma.siteSettings.upsert({
     where: { id: "default" },
     update: {
-      siteName: value(formData, "siteName") || "rep.things",
+      siteName: value(formData, "siteName") || "rep.markets",
       logoUrl: optionalValue(formData, "logoUrl"),
       faviconUrl: optionalValue(formData, "faviconUrl"),
       instagramUrl: optionalValue(formData, "instagramUrl"),
@@ -30,7 +32,7 @@ export async function updateSettings(formData: FormData) {
     },
     create: {
       id: "default",
-      siteName: value(formData, "siteName") || "rep.things",
+      siteName: value(formData, "siteName") || "rep.markets",
       logoUrl: optionalValue(formData, "logoUrl"),
       faviconUrl: optionalValue(formData, "faviconUrl"),
       instagramUrl: optionalValue(formData, "instagramUrl"),

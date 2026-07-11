@@ -95,7 +95,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           <input
             id="brand"
             name="brand"
-            defaultValue={product?.brand ?? "rep.things"}
+            defaultValue={product?.brand ?? "rep.markets"}
             className="mt-2 w-full border border-black/15 px-3 py-2 outline-none focus:border-black"
           />
         </div>

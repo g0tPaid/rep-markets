@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { MediaType } from "@/generated/prisma";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 function value(formData: FormData, key: string) {
@@ -22,11 +23,12 @@ function optionalNumber(formData: FormData, key: string) {
 }
 
 export async function createMediaAsset(formData: FormData) {
+  await requireAdmin();
   await prisma.mediaAsset.create({
     data: {
       url: value(formData, "url"),
       publicId: value(formData, "publicId") || null,
-      type: value(formData, "type") as MediaType,
+      type: (value(formData, "type") as MediaType) || "IMAGE",
       folder: value(formData, "folder") || "uploads",
       name: value(formData, "name") || null,
       width: optionalNumber(formData, "width"),
@@ -38,6 +40,7 @@ export async function createMediaAsset(formData: FormData) {
 }
 
 export async function deleteMediaAsset(id: string) {
+  await requireAdmin();
   await prisma.mediaAsset.delete({
     where: { id },
   });
