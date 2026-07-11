@@ -23,7 +23,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     }),
     prisma.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { id: true, name: true },
+      select: { id: true, name: true, parent: { select: { name: true } } },
     }),
   ]);
 
@@ -41,7 +41,11 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         ? (product.qualityPrices as Record<string, number | null>)
         : {},
     weight: product.weight ?? null,
-    media: product.media.map((item) => ({ url: item.url, kind: item.kind })),
+    media: product.media.map((item) => ({
+      url: item.url,
+      kind: item.kind,
+      sortOrder: item.sortOrder,
+    })),
   };
 
   return (
@@ -54,7 +58,11 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       </div>
       <ProductForm
         action={updateProduct.bind(null, product.id)}
-        categories={categories}
+        categories={categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          parentName: category.parent?.name ?? null,
+        }))}
         product={productForForm}
         submitLabel="Save product"
       />

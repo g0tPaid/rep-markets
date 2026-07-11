@@ -6,6 +6,7 @@ import { QUALITY_OPTIONS } from '@/lib/products';
 type CategoryOption = {
   id: string;
   name: string;
+  parentName?: string | null;
 };
 
 type ProductForForm = {
@@ -32,6 +33,7 @@ type ProductForForm = {
   media: Array<{
     url: string;
     kind: string;
+    sortOrder?: number;
   }>;
 };
 
@@ -48,9 +50,7 @@ function fieldValue(value: unknown) {
   return value === null || value === undefined ? '' : String(value);
 }
 
-function mediaUrl(product: ProductForForm | null | undefined, kind: string) {
-  return product?.media.find((item) => item.kind === kind)?.url ?? '';
-}
+const IMAGE_SLOTS = 8;
 
 function ImageUploadField({
   id,
@@ -107,12 +107,12 @@ function ImageUploadField({
             </div>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-3 p-4">
+        <div className="flex flex-wrap items-center gap-3 p-3">
           <label
             htmlFor={id}
-            className="cursor-pointer bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/85"
+            className="cursor-pointer bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-black/85"
           >
-            Upload image
+            Upload
           </label>
           <input
             id={id}
@@ -122,8 +122,8 @@ function ImageUploadField({
             onChange={onFileChange}
             className="sr-only"
           />
-          <span className="text-sm text-black/55">
-            {fileName || (existingUrl ? 'Current image kept until you upload a new one' : 'JPG, PNG, WEBP, or GIF · max 8MB')}
+          <span className="text-xs text-black/55">
+            {fileName || (existingUrl ? 'Kept until replaced' : 'JPG/PNG/WEBP · max 8MB')}
           </span>
         </div>
       </div>
@@ -198,7 +198,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
             <option value="">Unassigned</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
-                {category.name}
+                {category.parentName ? `${category.parentName} / ${category.name}` : category.name}
               </option>
             ))}
           </select>
@@ -409,21 +409,30 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         </label>
       </section>
 
-      <section className="grid gap-5 border border-black/10 bg-white p-5 md:grid-cols-2">
-        <ImageUploadField
-          id="itemImage"
-          name="itemImage"
-          label="Rep image"
-          existingUrl={mediaUrl(product, 'ITEM')}
-          existingName="existingItemImageUrl"
-        />
-        <ImageUploadField
-          id="modelImage"
-          name="modelImage"
-          label="Non-rep image"
-          existingUrl={mediaUrl(product, 'MODEL')}
-          existingName="existingModelImageUrl"
-        />
+      <section className="border border-black/10 bg-white p-5">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">Product images</h2>
+          <p className="mt-1 text-sm text-black/55">
+            Upload up to 8 photos. Image 1 is the cover on the shop grid.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: IMAGE_SLOTS }, (_, index) => {
+            const existingUrl =
+              [...(product?.media ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[index]
+                ?.url ?? '';
+            return (
+              <ImageUploadField
+                key={index}
+                id={`image${index}`}
+                name={`image${index}`}
+                label={`Image ${index + 1}${index === 0 ? ' (cover)' : ''}`}
+                existingUrl={existingUrl}
+                existingName={`existingImageUrl${index}`}
+              />
+            );
+          })}
+        </div>
       </section>
 
       <div className="flex justify-end">

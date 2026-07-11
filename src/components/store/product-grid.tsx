@@ -1,15 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import type { ProductView, StoreProduct } from '@/lib/products';
+import type { StoreProduct } from '@/lib/products';
 import { ProductCard } from '@/components/store/product-card';
 
 type ProductGridProps = {
   products: Array<StoreProduct & { image?: string }>;
-  view: ProductView;
 };
 
-export function ProductGrid({ products, view }: ProductGridProps) {
+export function ProductGrid({ products }: ProductGridProps) {
   if (!products.length) {
     return (
       <section className="px-4 py-16 text-center">
@@ -26,12 +25,12 @@ export function ProductGrid({ products, view }: ProductGridProps) {
       {products.map((product) => (
         <motion.div
           layout
-          key={`${product.id}-${view}`}
+          key={product.id}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.24 }}
         >
-          <ProductCard product={product} view={view} />
+          <ProductCard product={product} />
         </motion.div>
       ))}
     </motion.section>

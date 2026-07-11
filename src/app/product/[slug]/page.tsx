@@ -23,10 +23,12 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState(product?.sizes[0] ?? 'ONE SIZE');
   const [selectedQuality, setSelectedQuality] = useState<QualityOptionId>('NORMAL');
   const [quantity, setQuantity] = useState(1);
-  const [galleryView, setGalleryView] = useState<'rep' | 'non-rep'>('rep');
 
   const related = useMemo(
-    () => mockProducts.filter((item) => item.category === product?.category && item.id !== product?.id).slice(0, 3),
+    () =>
+      mockProducts
+        .filter((item) => item.category === product?.category && item.id !== product?.id)
+        .slice(0, 3),
     [product],
   );
 
@@ -39,7 +41,10 @@ export default function ProductPage() {
           <p className="mx-auto mt-4 max-w-[260px] text-sm leading-6 text-muted">
             The product may have been archived or renamed.
           </p>
-          <Link href="/" className="mt-8 inline-block border border-black px-5 py-4 text-[11px] font-semibold tracking-[0.22em]">
+          <Link
+            href="/"
+            className="mt-8 inline-block border border-black px-5 py-4 text-[11px] font-semibold tracking-[0.22em]"
+          >
             RETURN HOME
           </Link>
         </section>
@@ -47,7 +52,7 @@ export default function ProductPage() {
     );
   }
 
-  const imageSet = galleryView === 'non-rep' ? product.images.model : product.images.item;
+  const gallery = product.images.length ? product.images : [product.images[0]];
   const basePrice = product.salePrice ?? product.price;
   const quality = getQualityOption(selectedQuality);
   const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
@@ -56,7 +61,7 @@ export default function ProductPage() {
     <main className="min-h-screen bg-white">
       <Header />
       <div className="grid grid-cols-2 gap-1 bg-white p-1">
-        {imageSet.concat(imageSet).slice(0, 4).map((image, index) => (
+        {gallery.slice(0, 8).map((image, index) => (
           <div
             key={`${image}-${index}`}
             className="aspect-[3/4] rounded-2xl bg-surface bg-cover bg-center"
@@ -67,29 +72,9 @@ export default function ProductPage() {
       </div>
 
       <section className="px-4 py-7">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-muted">{product.category}</p>
-          <div className="flex border border-hairline">
-            {(
-              [
-                { id: 'rep' as const, label: 'Rep' },
-                { id: 'non-rep' as const, label: 'Non-rep' },
-              ] as const
-            ).map((view) => (
-              <button
-                key={view.id}
-                type="button"
-                onClick={() => setGalleryView(view.id)}
-                className={cn(
-                  'px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em]',
-                  galleryView === view.id && 'bg-black text-white',
-                )}
-              >
-                {view.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="mb-5 text-[11px] font-semibold tracking-[0.22em] text-muted">
+          REP · {product.category}
+        </p>
         <h1 className="font-serif text-5xl leading-[0.92] tracking-[-0.06em]">{product.name}</h1>
         <p className="mt-4 text-sm font-medium text-red-600">{formatPrice(unitPrice)}</p>
         {selectedQuality !== 'NORMAL' ? (
@@ -167,7 +152,7 @@ export default function ProductPage() {
               slug: product.slug,
               name: product.name,
               price: unitPrice,
-              imageUrl: product.images.item[0],
+              imageUrl: product.images[0],
               size: selectedSize,
               color: product.colors[0],
               quality: selectedQuality,

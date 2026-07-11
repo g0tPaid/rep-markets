@@ -13,7 +13,7 @@ export default async function NewProductPage() {
   const categories = await prisma.category.findMany({
     where: { isVisible: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: { id: true, name: true },
+    select: { id: true, name: true, parent: { select: { name: true } } },
   });
 
   return (
@@ -24,7 +24,15 @@ export default async function NewProductPage() {
         </Link>
         <h1 className="mt-3 text-3xl font-semibold">New product</h1>
       </div>
-      <ProductForm action={createProduct} categories={categories} submitLabel="Create product" />
+      <ProductForm
+        action={createProduct}
+        categories={categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          parentName: category.parent?.name ?? null,
+        }))}
+        submitLabel="Create product"
+      />
     </div>
   );
 }

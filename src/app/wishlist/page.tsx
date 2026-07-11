@@ -25,7 +25,7 @@ export default function WishlistPage() {
         <h1 className="font-serif text-[54px] leading-[0.9] tracking-[-0.07em]">Things worth keeping.</h1>
       </section>
       {products.length ? (
-        <ProductGrid products={products} view="REPS" />
+        <ProductGrid products={products} />
       ) : (
         <section className="px-4 py-16 text-center">
           <p className="font-serif text-3xl tracking-[-0.04em]">No saved things yet.</p>

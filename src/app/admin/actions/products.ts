@@ -94,39 +94,30 @@ async function resolveImageUrl(formData: FormData, fileKey: string, existingKey:
 }
 
 async function replaceProductMedia(productId: string, formData: FormData) {
-  const itemImageUrl = await resolveImageUrl(formData, "itemImage", "existingItemImageUrl");
-  const modelImageUrl = await resolveImageUrl(formData, "modelImage", "existingModelImageUrl");
+  const MAX_IMAGES = 12;
+  const productName = stringValue(formData, "name") || "Product";
+  const urls: string[] = [];
+
+  for (let index = 0; index < MAX_IMAGES; index += 1) {
+    const url = await resolveImageUrl(formData, `image${index}`, `existingImageUrl${index}`);
+    if (url) urls.push(url);
+  }
 
   await prisma.productMedia.deleteMany({
     where: { productId },
   });
 
-  const media = [
-    itemImageUrl
-      ? {
-          productId,
-          url: itemImageUrl,
-          kind: "ITEM",
-          alt: `${stringValue(formData, "name")} item image`,
-          sortOrder: 0,
-        }
-      : null,
-    modelImageUrl
-      ? {
-          productId,
-          url: modelImageUrl,
-          kind: "MODEL",
-          alt: `${stringValue(formData, "name")} model image`,
-          sortOrder: 1,
-        }
-      : null,
-  ].filter(Boolean);
+  if (!urls.length) return;
 
-  if (media.length) {
-    await prisma.productMedia.createMany({
-      data: media as NonNullable<(typeof media)[number]>[],
-    });
-  }
+  await prisma.productMedia.createMany({
+    data: urls.map((url, sortOrder) => ({
+      productId,
+      url,
+      kind: "ITEM",
+      alt: `${productName} image ${sortOrder + 1}`,
+      sortOrder,
+    })),
+  });
 }
 
 export async function createProduct(formData: FormData) {

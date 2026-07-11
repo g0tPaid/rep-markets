@@ -7,19 +7,20 @@ const prisma = new PrismaClient();
 const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase() || "admin@rep.markets";
 const adminPassword = process.env.ADMIN_PASSWORD || "change-this-password";
 
-const categories = [
-  { name: "TOP", slug: "top", sortOrder: 10 },
-  { name: "BOTTOM", slug: "bottom", sortOrder: 20 },
-  { name: "JEWELRY", slug: "jewelry", sortOrder: 30 },
-  { name: "ACCESSORIES", slug: "accessories", sortOrder: 40 },
-  { name: "HEADWEAR", slug: "headwear", sortOrder: 50 },
+const leafCategories = [
+  { name: "T-SHIRTS", slug: "t-shirts", sortOrder: 10 },
+  { name: "SHOES", slug: "shoes", sortOrder: 20 },
+  { name: "CHAINS", slug: "chains", sortOrder: 30 },
+  { name: "BOTTOM", slug: "bottom", sortOrder: 40 },
+  { name: "ACCESSORIES", slug: "accessories", sortOrder: 50 },
+  { name: "HEADWEAR", slug: "headwear", sortOrder: 60 },
 ];
 
 const products = [
   {
     name: "rep.markets Boxy Cotton Shirt",
     slug: "boxy-cotton-shirt",
-    categorySlug: "top",
+    categorySlug: "t-shirts",
     price: "78.00",
     stock: 32,
     sizes: ["XS", "S", "M", "L"],
@@ -33,7 +34,7 @@ const products = [
   {
     name: "rep.markets Ribbed Tank",
     slug: "ribbed-tank",
-    categorySlug: "top",
+    categorySlug: "t-shirts",
     price: "42.00",
     stock: 46,
     sizes: ["XS", "S", "M", "L", "XL"],
@@ -47,7 +48,7 @@ const products = [
   {
     name: "rep.markets Soft Knit Cardigan",
     slug: "soft-knit-cardigan",
-    categorySlug: "top",
+    categorySlug: "t-shirts",
     price: "96.00",
     stock: 18,
     sizes: ["S", "M", "L"],
@@ -103,7 +104,7 @@ const products = [
   {
     name: "rep.markets Small Hoop Pair",
     slug: "small-hoop-pair",
-    categorySlug: "jewelry",
+    categorySlug: "chains",
     price: "54.00",
     stock: 40,
     sizes: ["One size"],
@@ -179,23 +180,47 @@ async function main() {
     },
   });
 
-  for (const category of categories) {
+  const rep = await prisma.category.upsert({
+    where: { slug: "rep" },
+    update: {
+      name: "REP",
+      sortOrder: 0,
+      isVisible: true,
+      parentId: null,
+    },
+    create: {
+      name: "REP",
+      slug: "rep",
+      sortOrder: 0,
+      isVisible: true,
+    },
+  });
+
+  for (const category of leafCategories) {
     await prisma.category.upsert({
       where: { slug: category.slug },
       update: {
         name: category.name,
         sortOrder: category.sortOrder,
         isVisible: true,
+        parentId: rep.id,
       },
       create: {
         ...category,
         isVisible: true,
+        parentId: rep.id,
       },
     });
   }
 
+  // Hide legacy flat categories if they still exist
+  await prisma.category.updateMany({
+    where: { slug: { in: ["top", "jewelry"] } },
+    data: { isVisible: false },
+  });
+
   const categoryRecords = await prisma.category.findMany({
-    where: { slug: { in: categories.map((category) => category.slug) } },
+    where: { slug: { in: leafCategories.map((category) => category.slug) } },
   });
   const categoryBySlug = new Map(categoryRecords.map((category) => [category.slug, category]));
 
@@ -258,14 +283,14 @@ async function main() {
           productId: savedProduct.id,
           url: product.itemImageUrl,
           kind: "ITEM",
-          alt: `${product.name} item image`,
+          alt: `${product.name} image 1`,
           sortOrder: 0,
         },
         {
           productId: savedProduct.id,
           url: product.modelImageUrl,
-          kind: "MODEL",
-          alt: `${product.name} model image`,
+          kind: "ITEM",
+          alt: `${product.name} image 2`,
           sortOrder: 1,
         },
       ],

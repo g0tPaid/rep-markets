@@ -25,6 +25,7 @@ function slugify(input: string) {
 export async function createCategory(formData: FormData) {
   await requireAdmin();
   const name = value(formData, "name");
+  const parentId = optionalValue(formData, "parentId");
 
   await prisma.category.create({
     data: {
@@ -34,6 +35,7 @@ export async function createCategory(formData: FormData) {
       imageUrl: optionalValue(formData, "imageUrl"),
       sortOrder: Number(value(formData, "sortOrder")) || 0,
       isVisible: formData.get("isVisible") === "on",
+      parentId,
     },
   });
 
@@ -43,6 +45,7 @@ export async function createCategory(formData: FormData) {
 export async function updateCategory(id: string, formData: FormData) {
   await requireAdmin();
   const name = value(formData, "name");
+  const parentId = optionalValue(formData, "parentId");
 
   await prisma.category.update({
     where: { id },
@@ -53,6 +56,7 @@ export async function updateCategory(id: string, formData: FormData) {
       imageUrl: optionalValue(formData, "imageUrl"),
       sortOrder: Number(value(formData, "sortOrder")) || 0,
       isVisible: formData.get("isVisible") === "on",
+      parentId: parentId === id ? null : parentId,
     },
   });
 

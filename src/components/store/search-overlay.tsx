@@ -80,7 +80,7 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
                       >
                         <span
                           className="aspect-[3/4] bg-surface bg-cover bg-center"
-                          style={{ backgroundImage: `url("${product.images.item[0]}")` }}
+                          style={{ backgroundImage: `url("${product.images[0]}")` }}
                         />
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-medium uppercase tracking-[0.12em]">{product.name}</span>

@@ -1,15 +1,29 @@
 import { slugify } from '@/lib/utils';
 
-export const CATEGORIES = ['ALL', 'TOP', 'BOTTOM', 'JEWELRY', 'ACCESSORIES', 'HEADWEAR'] as const;
-export const VIEWS = ['REPS', 'NON_REP'] as const;
+/** Nav: ALL + REP (parent) + leaf product categories */
+export const CATEGORIES = [
+  'ALL',
+  'REP',
+  'T-SHIRTS',
+  'SHOES',
+  'CHAINS',
+  'BOTTOM',
+  'ACCESSORIES',
+  'HEADWEAR',
+] as const;
 
 export type ProductCategory = (typeof CATEGORIES)[number];
-export type ProductView = (typeof VIEWS)[number];
+export type LeafCategory = Exclude<ProductCategory, 'ALL' | 'REP'>;
 
-export const VIEW_LABELS: Record<ProductView, string> = {
-  REPS: 'REPS',
-  NON_REP: 'NON-REP',
-};
+/** Leaf categories that live under REP */
+export const REP_CHILDREN: LeafCategory[] = [
+  'T-SHIRTS',
+  'SHOES',
+  'CHAINS',
+  'BOTTOM',
+  'ACCESSORIES',
+  'HEADWEAR',
+];
 
 export const QUALITY_OPTIONS = [
   { id: 'NORMAL', label: 'Normal quality', multiplier: 1 },
@@ -67,16 +81,14 @@ export type StoreProduct = {
   price: number;
   salePrice?: number | null;
   qualityPrices?: QualityPriceMap;
-  category: Exclude<ProductCategory, 'ALL'>;
+  category: LeafCategory;
   description: string;
   material: string;
   sizes: string[];
   colors: string[];
   tags: string[];
-  images: {
-    item: string[];
-    model: string[];
-  };
+  /** Ordered gallery (cover = first image) */
+  images: string[];
   featured?: boolean;
   newArrival?: boolean;
 };
@@ -116,26 +128,14 @@ export type PrismaProductShape = {
 
 const ITEM_PHOTOS = [
   'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1590874103328-eac38a674cb2?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1588850561407-ed78c456a51d?auto=format&fit=crop&w=900&q=80',
   'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=900&q=80',
   'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=900&q=80',
   'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=900&q=80',
-];
-
-const MODEL_PHOTOS = [
-  'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=900&q=80',
 ];
 
 function mockImage(label: string, bg = 'f5f5f0') {
@@ -148,25 +148,33 @@ function toNumber(value: DecimalLike) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function toCategory(input?: string | null): StoreProduct['category'] {
-  const normalized = (input || '').toUpperCase();
-  if (normalized.includes('BOTTOM')) return 'BOTTOM';
-  if (normalized.includes('JEWEL')) return 'JEWELRY';
-  if (normalized.includes('ACCESS')) return 'ACCESSORIES';
-  if (normalized.includes('HEAD')) return 'HEADWEAR';
-  return 'TOP';
+function toCategory(input?: string | null): LeafCategory {
+  const normalized = (input || '').toUpperCase().replace(/_/g, '-').replace(/\s+/g, '-');
+  if (normalized.includes('SHOE')) return 'SHOES';
+  if (normalized.includes('CHAIN') || normalized.includes('JEWEL')) return 'CHAINS';
+  if (normalized.includes('BOTTOM') || normalized.includes('PANT') || normalized.includes('DENIM')) {
+    return 'BOTTOM';
+  }
+  if (normalized.includes('ACCESS') || normalized.includes('BAG') || normalized.includes('TOTE')) {
+    return 'ACCESSORIES';
+  }
+  if (normalized.includes('HEAD') || normalized.includes('CAP') || normalized.includes('HAT')) {
+    return 'HEADWEAR';
+  }
+  if (
+    normalized.includes('TOP') ||
+    normalized.includes('SHIRT') ||
+    normalized.includes('TANK') ||
+    normalized.includes('TEE')
+  ) {
+    return 'T-SHIRTS';
+  }
+  return 'T-SHIRTS';
 }
 
 export function mapPrismaProductToStore(product: PrismaProductShape): StoreProduct {
   const media = [...(product.media ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  const itemImages = media
-    .filter((image) => (image.kind ?? 'ITEM').toUpperCase() === 'ITEM')
-    .map((image) => image.url)
-    .filter(Boolean) as string[];
-  const modelImages = media
-    .filter((image) => (image.kind ?? '').toUpperCase() === 'MODEL')
-    .map((image) => image.url)
-    .filter(Boolean) as string[];
+  const gallery = media.map((image) => image.url).filter(Boolean) as string[];
   const fallback = mockImage(product.name, 'f7f7f2');
 
   return {
@@ -185,10 +193,7 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     sizes: product.sizes?.length ? product.sizes : ['XS', 'S', 'M', 'L', 'XL'],
     colors: product.colors?.length ? product.colors : ['Black', 'Natural'],
     tags: product.tags ?? [],
-    images: {
-      item: itemImages.length ? itemImages : [fallback],
-      model: modelImages.length ? modelImages : [mockImage(`${product.name} on model`, 'eeeeea')],
-    },
+    images: gallery.length ? gallery : [fallback],
     featured: Boolean(product.featured),
     newArrival: Boolean(product.newArrival),
   };
@@ -200,13 +205,13 @@ export const mockProducts: StoreProduct[] = [
     slug: 'studio-poplin-shirt',
     name: 'Studio Poplin Shirt',
     price: 128,
-    category: 'TOP',
+    category: 'T-SHIRTS',
     description: 'A crisp oversized shirt with a softened collar, cut for polished everyday layering.',
     material: 'Organic cotton poplin',
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
     colors: ['White', 'Graphite'],
     tags: ['shirt', 'daily'],
-    images: { item: [ITEM_PHOTOS[0]], model: [MODEL_PHOTOS[0]] },
+    images: [ITEM_PHOTOS[0]],
     featured: true,
     newArrival: true,
   },
@@ -221,33 +226,33 @@ export const mockProducts: StoreProduct[] = [
     sizes: ['24', '26', '28', '30', '32'],
     colors: ['Black', 'Charcoal'],
     tags: ['tailoring'],
-    images: { item: [ITEM_PHOTOS[1]], model: [MODEL_PHOTOS[1]] },
+    images: [ITEM_PHOTOS[1]],
   },
   {
     id: 'pt-003',
     slug: 'utility-tank',
     name: 'Utility Tank',
     price: 64,
-    category: 'TOP',
+    category: 'T-SHIRTS',
     description: 'A ribbed tank with a high neckline and compact shoulder line.',
     material: 'Ribbed cotton jersey',
     sizes: ['XS', 'S', 'M', 'L'],
     colors: ['Black', 'Bone'],
     tags: ['base layer'],
-    images: { item: [ITEM_PHOTOS[2]], model: [MODEL_PHOTOS[2]] },
+    images: [ITEM_PHOTOS[2]],
   },
   {
     id: 'pt-004',
     slug: 'flat-chain-bracelet',
     name: 'Flat Chain Bracelet',
     price: 92,
-    category: 'JEWELRY',
+    category: 'CHAINS',
     description: 'A low-profile chain bracelet with a polished finish and concealed clasp.',
     material: 'Stainless steel',
     sizes: ['ONE SIZE'],
     colors: ['Silver'],
     tags: ['jewelry'],
-    images: { item: [ITEM_PHOTOS[3]], model: [MODEL_PHOTOS[3]] },
+    images: [ITEM_PHOTOS[3]],
     featured: true,
   },
   {
@@ -261,7 +266,7 @@ export const mockProducts: StoreProduct[] = [
     sizes: ['ONE SIZE'],
     colors: ['Natural', 'Black'],
     tags: ['bag'],
-    images: { item: [ITEM_PHOTOS[4]], model: [MODEL_PHOTOS[4]] },
+    images: [ITEM_PHOTOS[4]],
   },
   {
     id: 'pt-006',
@@ -274,20 +279,20 @@ export const mockProducts: StoreProduct[] = [
     sizes: ['S/M', 'L/XL'],
     colors: ['Olive', 'Black'],
     tags: ['cap'],
-    images: { item: [ITEM_PHOTOS[5]], model: [MODEL_PHOTOS[5]] },
+    images: [ITEM_PHOTOS[5]],
   },
   {
     id: 'pt-007',
     slug: 'paperweight-hoop-earrings',
     name: 'Paperweight Hoop Earrings',
     price: 86,
-    category: 'JEWELRY',
+    category: 'CHAINS',
     description: 'Thick polished hoops with a solid feel and a hinged closure.',
     material: 'Brass with silver finish',
     sizes: ['ONE SIZE'],
     colors: ['Silver'],
     tags: ['earrings'],
-    images: { item: [ITEM_PHOTOS[6]], model: [MODEL_PHOTOS[6]] },
+    images: [ITEM_PHOTOS[6]],
   },
   {
     id: 'pt-008',
@@ -300,33 +305,49 @@ export const mockProducts: StoreProduct[] = [
     sizes: ['24', '26', '28', '30', '32'],
     colors: ['Black', 'Stone'],
     tags: ['shorts'],
-    images: { item: [ITEM_PHOTOS[7]], model: [MODEL_PHOTOS[7]] },
+    images: [ITEM_PHOTOS[7]],
   },
   {
     id: 'pt-009',
     slug: 'workroom-cardigan',
     name: 'Workroom Cardigan',
     price: 154,
-    category: 'TOP',
+    category: 'T-SHIRTS',
     description: 'A fine-gauge cardigan with a deep V and slightly extended sleeves.',
     material: 'Merino wool',
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
     colors: ['Black', 'Oatmeal'],
     tags: ['knit'],
-    images: { item: [ITEM_PHOTOS[8]], model: [MODEL_PHOTOS[8]] },
+    images: [ITEM_PHOTOS[8]],
     newArrival: true,
+  },
+  {
+    id: 'pt-010',
+    slug: 'court-runner',
+    name: 'Court Runner',
+    price: 140,
+    category: 'SHOES',
+    description: 'A clean low runner with a quiet sole and everyday upper.',
+    material: 'Leather and mesh',
+    sizes: ['40', '41', '42', '43', '44'],
+    colors: ['White', 'Black'],
+    tags: ['shoes'],
+    images: [ITEM_PHOTOS[1]],
+    featured: true,
   },
 ];
 
-export function filterProducts(products: StoreProduct[], category = 'ALL', view: ProductView = 'REPS') {
+export function filterProducts(products: StoreProduct[], category = 'ALL') {
+  const selected = category.toUpperCase();
+
   const filtered =
-    category.toUpperCase() === 'ALL'
+    selected === 'ALL' || selected === 'REP'
       ? products
-      : products.filter((product) => product.category === category.toUpperCase());
+      : products.filter((product) => product.category === selected);
 
   return filtered.map((product) => ({
     ...product,
-    image: view === 'NON_REP' ? product.images.model[0] : product.images.item[0],
+    image: product.images[0],
   }));
 }
 
