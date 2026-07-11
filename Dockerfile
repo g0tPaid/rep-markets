@@ -31,4 +31,4 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/next.config.ts ./next.config.ts
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && pnpm exec next start --hostname 0.0.0.0 --port 3000"]
+CMD ["sh", "-c", "echo \"Starting migrations...\" && pnpm exec prisma migrate deploy && echo \"Starting Next.js on 0.0.0.0:3000\" && exec pnpm exec next start --hostname 0.0.0.0 --port 3000"]
