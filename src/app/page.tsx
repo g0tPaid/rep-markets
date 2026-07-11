@@ -52,7 +52,7 @@ export default function Home() {
         <aside
           role="note"
           aria-label="Shipping time notice"
-          className="mx-auto mt-5 w-full max-w-[280px] border border-red-600 bg-red-50 px-2.5 py-2.5 text-center text-red-700"
+          className="mx-auto mt-5 w-full max-w-[360px] border border-red-600 bg-red-50 px-3 py-2.5 text-center text-red-700"
         >
           <p className="text-[9px] font-semibold uppercase tracking-[0.18em]">⚠ Shipping notice</p>
           <p className="mt-1.5 text-[10px] leading-4">
