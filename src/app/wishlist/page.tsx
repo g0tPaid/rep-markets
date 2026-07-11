@@ -4,18 +4,40 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Header } from '@/components/store/header';
 import { ProductGrid } from '@/components/store/product-grid';
-import { mockProducts } from '@/lib/products';
+import type { StoreProduct } from '@/lib/products';
 import { useWishlist } from '@/lib/store';
 
 export default function WishlistPage() {
   const ids = useWishlist((state) => state.ids);
   const [mounted, setMounted] = useState(false);
+  const [products, setProducts] = useState<StoreProduct[]>([]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const products = mounted ? mockProducts.filter((product) => ids.includes(product.id)) : [];
+  useEffect(() => {
+    if (!mounted || !ids.length) {
+      setProducts([]);
+      return;
+    }
+
+    let cancelled = false;
+    const params = new URLSearchParams({ ids: ids.join(',') });
+
+    fetch(`/api/products?${params.toString()}`)
+      .then((response) => response.json())
+      .then((payload: { data?: StoreProduct[] }) => {
+        if (!cancelled) setProducts(payload.data ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setProducts([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ids, mounted]);
 
   return (
     <main className="min-h-screen bg-white">

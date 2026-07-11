@@ -423,7 +423,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           <select
             id="status"
             name="status"
-            defaultValue={product?.status ?? 'DRAFT'}
+            defaultValue={product?.status ?? 'ACTIVE'}
             className="mt-2 w-full border border-black/15 bg-white px-3 py-2 outline-none focus:border-black"
           >
             {statuses.map((status) => (

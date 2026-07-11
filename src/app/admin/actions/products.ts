@@ -89,7 +89,7 @@ function productData(formData: FormData) {
     tags: csvValue(formData, "tags"),
     weight: optionalNumber(formData, "weight"),
     material: optionalString(formData, "material"),
-    status: (stringValue(formData, "status") || "DRAFT") as ProductStatus,
+    status: (stringValue(formData, "status") || "ACTIVE") as ProductStatus,
     featured: formData.get("featured") === "on",
     newArrival: formData.get("newArrival") === "on",
     homepageOrder: optionalNumber(formData, "homepageOrder"),
@@ -143,19 +143,22 @@ export async function createProduct(
 ): Promise<ProductActionState> {
   await requireAdmin();
 
+  const data = productData(formData);
+
   try {
     const product = await prisma.product.create({
-      data: productData(formData),
+      data,
     });
 
     await replaceProductMedia(product.id, formData);
+    revalidatePath("/admin/products");
+    revalidatePath("/");
+    revalidatePath(`/product/${product.slug}`);
   } catch (error) {
     console.error("createProduct failed", error);
     return { error: actionError(error) };
   }
 
-  revalidatePath("/admin/products");
-  revalidatePath("/");
   redirect("/admin/products");
 }
 
@@ -166,21 +169,24 @@ export async function updateProduct(
 ): Promise<ProductActionState> {
   await requireAdmin();
 
+  const data = productData(formData);
+
   try {
     await prisma.product.update({
       where: { id },
-      data: productData(formData),
+      data,
     });
 
     await replaceProductMedia(id, formData);
+    revalidatePath("/admin/products");
+    revalidatePath(`/admin/products/edit/${id}`);
+    revalidatePath("/");
+    revalidatePath(`/product/${data.slug}`);
   } catch (error) {
     console.error("updateProduct failed", error);
     return { error: actionError(error) };
   }
 
-  revalidatePath("/admin/products");
-  revalidatePath(`/admin/products/edit/${id}`);
-  revalidatePath("/");
   redirect("/admin/products");
 }
 
