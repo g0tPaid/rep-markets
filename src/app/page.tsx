@@ -52,16 +52,16 @@ export default function Home() {
         <aside
           role="note"
           aria-label="Shipping time notice"
-          className="mx-auto mt-8 w-full max-w-[340px] border-2 border-red-600 bg-red-50 px-4 py-5 text-center text-red-700 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]"
+          className="mx-auto mt-5 w-full max-w-[280px] border border-red-600 bg-red-50 px-2.5 py-2.5 text-center text-red-700"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em]">⚠ Shipping notice</p>
-          <p className="mt-3 text-sm leading-6">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.18em]">⚠ Shipping notice</p>
+          <p className="mt-1.5 text-[10px] leading-4">
             See, these factories are located in villages. We source directly from factories. When they
             send an item, it takes 2 to 3 days to reach us. Then we send you QC videos — that takes 1
             day. Shipping takes another 2 days, and then usually it takes 9 to 14 days to reach your
             place.
           </p>
-          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.08em]">
+          <p className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.06em]">
             This is true numbers and no overpromises.
           </p>
         </aside>
