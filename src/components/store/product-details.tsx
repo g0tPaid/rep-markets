@@ -38,11 +38,14 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
       <Header />
       <div className="grid grid-cols-2 gap-1 bg-white p-1">
         {gallery.slice(0, 8).map((image, index) => (
-          <div
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             key={`${image}-${index}`}
-            className="aspect-[3/4] rounded-2xl bg-surface bg-cover bg-center"
-            style={{ backgroundImage: `url("${image}")` }}
-            aria-label={`${product.name} gallery image ${index + 1}`}
+            src={image}
+            alt={`${product.name} gallery image ${index + 1}`}
+            loading={index < 2 ? 'eager' : 'lazy'}
+            decoding="async"
+            className="aspect-[3/4] rounded-2xl bg-surface object-cover"
           />
         ))}
       </div>

@@ -106,7 +106,7 @@ async function loadActiveProducts(): Promise<StoreProduct[]> {
 /** Cached at runtime only — pages stay dynamic so Docker builds need no DATABASE_URL. */
 export function getActiveProducts(): Promise<StoreProduct[]> {
   return unstable_cache(loadActiveProducts, ['active-products'], {
-    revalidate: 60,
+    revalidate: 30,
     tags: [CATALOG_CACHE_TAG],
   })();
 }
@@ -150,7 +150,7 @@ export async function getProductPageData(slug: string): Promise<{
       };
     },
     ['product-page', slug],
-    { revalidate: 60, tags: [CATALOG_CACHE_TAG] },
+    { revalidate: 30, tags: [CATALOG_CACHE_TAG] },
   )();
 }
 

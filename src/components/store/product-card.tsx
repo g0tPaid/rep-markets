@@ -18,12 +18,16 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <article className="group min-w-0">
       <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-surface">
-        <Link
-          href={`/product/${product.slug}`}
-          className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-[1.03]"
-          style={{ backgroundImage: `url("${image}")` }}
-          aria-label={`View ${product.name}`}
-        />
+        <Link href={`/product/${product.slug}`} className="absolute inset-0" aria-label={`View ${product.name}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+          />
+        </Link>
         <button
           type="button"
           onClick={() => toggle(product.id)}

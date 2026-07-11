@@ -30,6 +30,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/next.config.ts ./next.config.ts
-RUN mkdir -p /app/public/uploads/products && chmod -R 777 /app/public/uploads
+# Persist product photos by mounting a Railway volume at /app/uploads
+ENV UPLOAD_DIR=/app/uploads
+RUN mkdir -p /app/uploads/products /app/public/uploads/products && chmod -R 777 /app/uploads /app/public/uploads
 EXPOSE 3000
-CMD ["sh", "-c", "echo \"Starting Next.js on 0.0.0.0:3000\" && exec pnpm exec next start --hostname 0.0.0.0 --port 3000"]
+CMD ["sh", "-c", "mkdir -p /app/uploads/products && echo \"Starting Next.js on 0.0.0.0:3000\" && exec pnpm exec next start --hostname 0.0.0.0 --port 3000"]

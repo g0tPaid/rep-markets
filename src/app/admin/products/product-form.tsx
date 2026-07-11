@@ -7,10 +7,14 @@ import {
   useRef,
   useState,
   useTransition,
-  type ChangeEvent,
   type FormEvent,
 } from 'react';
 import type { ProductActionState } from '@/app/admin/actions/products';
+import {
+  createGalleryItem,
+  ProductImageGallery,
+  type GalleryItem,
+} from '@/components/admin/product-image-gallery';
 import { QUALITY_OPTIONS } from '@/lib/products';
 import { cn } from '@/lib/utils';
 
@@ -119,6 +123,69 @@ function uploadFile(file: File, onProgress: (pct: number) => void) {
   });
 }
 
+/** Shrink large photos before upload so create feels faster. */
+async function compressImage(file: File, maxEdge = 1600, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
+  if (file.size < 400_000) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    if (scale >= 1 && file.size < 1_500_000) {
+      bitmap.close();
+      return file;
+    }
+
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', quality),
+    );
+    if (!blob) return file;
+
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
+
+async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+  onItemDone?: (done: number, total: number) => void,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  let done = 0;
+
+  async function run() {
+    while (nextIndex < items.length) {
+      const current = nextIndex;
+      nextIndex += 1;
+      results[current] = await worker(items[current], current);
+      done += 1;
+      onItemDone?.(done, items.length);
+    }
+  }
+
+  const runners = Array.from({ length: Math.min(limit, items.length) }, () => run());
+  await Promise.all(runners);
+  return results;
+}
+
 function SizeChip({
   label,
   selected,
@@ -139,85 +206,6 @@ function SizeChip({
     >
       {label}
     </button>
-  );
-}
-
-function ImageUploadField({
-  id,
-  label,
-  existingUrl,
-  existingName,
-  existingValue,
-  onExistingChange,
-  file,
-  onFileChange,
-}: {
-  id: string;
-  label: string;
-  existingUrl: string;
-  existingName: string;
-  existingValue: string;
-  onExistingChange: (url: string) => void;
-  file: File | null;
-  onFileChange: (file: File | null) => void;
-}) {
-  const [previewUrl, setPreviewUrl] = useState(existingValue || existingUrl);
-
-  useEffect(() => {
-    setPreviewUrl(existingValue || existingUrl);
-  }, [existingUrl, existingValue]);
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-
-  function handleFile(event: ChangeEvent<HTMLInputElement>) {
-    const next = event.target.files?.[0] ?? null;
-    if (!next) {
-      onFileChange(null);
-      setPreviewUrl(existingValue || existingUrl);
-      return;
-    }
-    if (next.size > 8 * 1024 * 1024) {
-      onFileChange(null);
-      event.target.value = '';
-      alert('Image must be 8MB or smaller.');
-      return;
-    }
-    onFileChange(next);
-    const blobUrl = URL.createObjectURL(next);
-    setPreviewUrl((current) => {
-      if (current.startsWith('blob:')) URL.revokeObjectURL(current);
-      return blobUrl;
-    });
-  }
-
-  return (
-    <div>
-      <p className="block text-sm font-medium">{label}</p>
-      <input type="hidden" name={existingName} value={existingValue} onChange={(e) => onExistingChange(e.target.value)} />
-      <div className="mt-2 overflow-hidden border border-black/15 bg-neutral-50">
-        <div className="relative aspect-[4/5] bg-neutral-100">
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={previewUrl} alt={`${label} preview`} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-black/40">No image yet</div>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 p-3">
-          <label htmlFor={id} className="cursor-pointer bg-black px-3 py-1.5 text-xs font-medium text-white">
-            Upload
-          </label>
-          <input id={id} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="sr-only" />
-          <span className="text-xs text-black/55">
-            {file?.name || (existingValue ? 'Ready' : 'JPG/PNG/WEBP · max 8MB')}
-          </span>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -243,10 +231,12 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
     () => [...(product?.media ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     [product?.media],
   );
-  const [existingUrls, setExistingUrls] = useState<string[]>(
-    Array.from({ length: IMAGE_SLOTS }, (_, index) => sortedMedia[index]?.url ?? ''),
+  const [gallery, setGallery] = useState<GalleryItem[]>(() =>
+    sortedMedia
+      .filter((item) => item.url)
+      .slice(0, IMAGE_SLOTS)
+      .map((item) => createGalleryItem({ url: item.url, preview: item.url })),
   );
-  const [files, setFiles] = useState<Array<File | null>>(Array.from({ length: IMAGE_SLOTS }, () => null));
 
   const selectedSizes =
     sizeMode === 'clothes' ? clothesSizes : [...shoeEu, ...shoeUk, ...shoeUs];
@@ -263,35 +253,54 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
     const formData = new FormData(form);
     formData.set('sizes', selectedSizes.join(', '));
 
-    const uploads = files
-      .map((file, index) => (file ? { file, index } : null))
-      .filter(Boolean) as Array<{ file: File; index: number }>;
-
-    // Snapshot current URLs so async setState does not leave empty image slots.
-    const urls = [...existingUrls];
-
     try {
-      for (let i = 0; i < uploads.length; i += 1) {
-        const { file, index } = uploads[i];
-        const base = Math.round((i / Math.max(uploads.length, 1)) * 85);
-        setProgress({
-          pct: Math.max(4, base),
-          label: `Uploading image ${i + 1} of ${uploads.length}…`,
-        });
+      const pendingUploads = gallery
+        .map((item, index) => (item.file ? { item, index } : null))
+        .filter(Boolean) as Array<{ item: GalleryItem; index: number }>;
 
-        const url = await uploadFile(file, (filePct) => {
-          const overall = base + Math.round((filePct / 100) * (85 / Math.max(uploads.length, 1)));
-          setProgress({
-            pct: Math.min(85, Math.max(4, overall)),
-            label: `Uploading image ${i + 1} of ${uploads.length}… ${filePct}%`,
-          });
-        });
+      const urls = gallery.map((item) => item.url);
 
-        urls[index] = url;
-        formData.set(`existingImageUrl${index}`, url);
+      if (pendingUploads.length) {
+        setProgress({ pct: 8, label: `Optimizing ${pendingUploads.length} image(s)…` });
+        const prepared = await Promise.all(
+          pendingUploads.map(async ({ item, index }) => ({
+            index,
+            file: await compressImage(item.file as File),
+          })),
+        );
+
+        let completed = 0;
+        await mapPool(
+          prepared,
+          3,
+          async ({ file, index }) => {
+            const url = await uploadFile(file, () => {
+              const pct = 10 + Math.round(((completed + 0.5) / prepared.length) * 75);
+              setProgress({
+                pct: Math.min(85, pct),
+                label: `Uploading images… ${completed + 1}/${prepared.length}`,
+              });
+            });
+            urls[index] = url;
+            return url;
+          },
+          (done, total) => {
+            completed = done;
+            setProgress({
+              pct: 10 + Math.round((done / total) * 75),
+              label: `Uploaded ${done} of ${total}…`,
+            });
+          },
+        );
+
+        setGallery((current) =>
+          current.map((item, index) =>
+            urls[index]
+              ? { ...item, url: urls[index], file: null, preview: urls[index] }
+              : item,
+          ),
+        );
       }
-
-      setExistingUrls(urls);
 
       for (let index = 0; index < IMAGE_SLOTS; index += 1) {
         formData.delete(`image${index}`);
@@ -707,37 +716,14 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         <div className="mb-4">
           <h2 className="text-lg font-semibold">Product images</h2>
           <p className="mt-1 text-sm text-black/55">
-            Upload up to 8 photos (JPG/PNG/WEBP, max 8MB each). Images upload first with a progress bar,
-            then the product is saved.
+            Upload up to 8 photos together. Reorder with arrows, set a cover, or remove any image.
+            Photos are compressed before upload for speed.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: IMAGE_SLOTS }, (_, index) => (
-            <ImageUploadField
-              key={index}
-              id={`image${index}`}
-              label={`Image ${index + 1}${index === 0 ? ' (cover)' : ''}`}
-              existingUrl={sortedMedia[index]?.url ?? ''}
-              existingName={`existingImageUrl${index}`}
-              existingValue={existingUrls[index] ?? ''}
-              onExistingChange={(url) =>
-                setExistingUrls((current) => {
-                  const next = [...current];
-                  next[index] = url;
-                  return next;
-                })
-              }
-              file={files[index]}
-              onFileChange={(file) =>
-                setFiles((current) => {
-                  const next = [...current];
-                  next[index] = file;
-                  return next;
-                })
-              }
-            />
-          ))}
-        </div>
+        <ProductImageGallery items={gallery} onChange={setGallery} max={IMAGE_SLOTS} />
+        {gallery.map((item, index) => (
+          <input key={`hidden-${item.key}`} type="hidden" name={`existingImageUrl${index}`} value={item.url} readOnly />
+        ))}
       </section>
 
       <div className="space-y-3">

@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com' },
     ],
   },
+  async rewrites() {
+    return [
+      // Legacy /uploads/... paths → dynamic media API (volume-backed)
+      { source: '/uploads/:path*', destination: '/api/media/:path*' },
+    ];
+  },
 };
 
 export default nextConfig;
