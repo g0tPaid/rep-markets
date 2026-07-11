@@ -28,7 +28,17 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
           ],
         }
       : undefined,
-    include: { category: true, media: { orderBy: { sortOrder: "asc" } } },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      sku: true,
+      price: true,
+      salePrice: true,
+      stock: true,
+      status: true,
+      category: { select: { name: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 

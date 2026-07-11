@@ -29,13 +29,28 @@ export default async function AdminDashboardPage() {
       prisma.order.findMany({
         take: 5,
         orderBy: { createdAt: "desc" },
-        include: { items: true },
+        select: {
+          id: true,
+          number: true,
+          customerName: true,
+          status: true,
+          total: true,
+          currency: true,
+          _count: { select: { items: true } },
+        },
       }),
       prisma.order.findMany({
         where: { status: "PENDING" },
         orderBy: { createdAt: "desc" },
         take: 8,
-        include: { items: true },
+        select: {
+          id: true,
+          number: true,
+          customerName: true,
+          phone: true,
+          total: true,
+          currency: true,
+        },
       }),
     ]);
 
@@ -127,7 +142,7 @@ export default async function AdminDashboardPage() {
                 <span className="font-medium">{order.number}</span>
                 <span>{order.customerName}</span>
                 <span>{order.status}</span>
-                <span>{order.items.length} item(s)</span>
+                <span>{order._count.items} item(s)</span>
                 <span className="md:text-right">{money(Number(order.total), order.currency)}</span>
               </Link>
             ))}

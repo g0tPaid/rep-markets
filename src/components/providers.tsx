@@ -10,16 +10,18 @@ export function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith('/admin');
 
+  if (isAdmin) {
+    return (
+      <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
+        {children}
+      </SessionProvider>
+    );
+  }
+
   return (
-    <SessionProvider>
-      {isAdmin ? (
-        children
-      ) : (
-        <SiteShell>
-          {children}
-          <CartDrawer />
-        </SiteShell>
-      )}
-    </SessionProvider>
+    <SiteShell>
+      {children}
+      <CartDrawer />
+    </SiteShell>
   );
 }

@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { Header } from '@/components/store/header';
 import { ProductDetails } from '@/components/store/product-details';
-import { getActiveProductBySlug, getActiveProducts } from '@/lib/catalog';
+import { getProductPageData } from '@/lib/catalog';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -11,9 +11,9 @@ type ProductPageProps = {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = await getActiveProductBySlug(slug);
+  const data = await getProductPageData(slug);
 
-  if (!product) {
+  if (!data) {
     return (
       <main className="min-h-screen bg-white">
         <Header />
@@ -33,9 +33,5 @@ export default async function ProductPage({ params }: ProductPageProps) {
     );
   }
 
-  const related = (await getActiveProducts())
-    .filter((item) => item.category === product.category && item.id !== product.id)
-    .slice(0, 3);
-
-  return <ProductDetails product={product} related={related} />;
+  return <ProductDetails product={data.product} related={data.related} />;
 }

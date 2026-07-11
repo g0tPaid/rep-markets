@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getActiveProducts, getActiveProductsByIds } from '@/lib/catalog';
 import { filterProducts, type ProductCategory, type ProductView } from '@/lib/products';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
