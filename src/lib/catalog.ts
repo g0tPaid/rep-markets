@@ -1,6 +1,9 @@
+import { unstable_cache } from 'next/cache';
 import { ProductStatus } from '@/generated/prisma';
 import { mapPrismaProductToStore, type StoreProduct } from '@/lib/products';
 import { prisma } from '@/lib/prisma';
+
+export const CATALOG_CACHE_TAG = 'catalog';
 
 type CatalogRow = {
   id: string;
@@ -90,7 +93,7 @@ const detailSelect = {
   media: detailMediaSelect,
 } as const;
 
-export async function getActiveProducts(): Promise<StoreProduct[]> {
+async function loadActiveProducts(): Promise<StoreProduct[]> {
   const products = (await prisma.product.findMany({
     where: { status: ProductStatus.ACTIVE },
     select: listSelect,
@@ -98,6 +101,14 @@ export async function getActiveProducts(): Promise<StoreProduct[]> {
   } as never)) as unknown as CatalogRow[];
 
   return products.map(normalizeProduct);
+}
+
+/** Cached at runtime only — pages stay dynamic so Docker builds need no DATABASE_URL. */
+export function getActiveProducts(): Promise<StoreProduct[]> {
+  return unstable_cache(loadActiveProducts, ['active-products'], {
+    revalidate: 60,
+    tags: [CATALOG_CACHE_TAG],
+  })();
 }
 
 export async function getActiveProductBySlug(slug: string): Promise<StoreProduct | null> {
@@ -113,28 +124,34 @@ export async function getProductPageData(slug: string): Promise<{
   product: StoreProduct;
   related: StoreProduct[];
 } | null> {
-  const product = (await prisma.product.findFirst({
-    where: { slug, status: ProductStatus.ACTIVE },
-    select: detailSelect,
-  } as never)) as unknown as CatalogRow | null;
+  return unstable_cache(
+    async () => {
+      const product = (await prisma.product.findFirst({
+        where: { slug, status: ProductStatus.ACTIVE },
+        select: detailSelect,
+      } as never)) as unknown as CatalogRow | null;
 
-  if (!product) return null;
+      if (!product) return null;
 
-  const relatedRows = (await prisma.product.findMany({
-    where: {
-      status: ProductStatus.ACTIVE,
-      id: { not: product.id },
-      ...(product.categoryId ? { categoryId: product.categoryId } : {}),
+      const relatedRows = (await prisma.product.findMany({
+        where: {
+          status: ProductStatus.ACTIVE,
+          id: { not: product.id },
+          ...(product.categoryId ? { categoryId: product.categoryId } : {}),
+        },
+        select: listSelect,
+        orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+        take: 3,
+      } as never)) as unknown as CatalogRow[];
+
+      return {
+        product: normalizeProduct(product),
+        related: relatedRows.map(normalizeProduct),
+      };
     },
-    select: listSelect,
-    orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-    take: 3,
-  } as never)) as unknown as CatalogRow[];
-
-  return {
-    product: normalizeProduct(product),
-    related: relatedRows.map(normalizeProduct),
-  };
+    ['product-page', slug],
+    { revalidate: 60, tags: [CATALOG_CACHE_TAG] },
+  )();
 }
 
 export async function getRelatedProducts(

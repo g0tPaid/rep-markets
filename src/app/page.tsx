@@ -1,8 +1,8 @@
 import { HomeCatalog } from '@/components/store/home-catalog';
 import { getActiveProducts } from '@/lib/catalog';
 
-/** Cache the catalog briefly; admin mutations call revalidatePath('/'). */
-export const revalidate = 60;
+/** Dynamic so builds do not need DATABASE_URL; catalog is cached at runtime. */
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const products = await getActiveProducts();

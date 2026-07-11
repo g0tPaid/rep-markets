@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ProductStatus } from "@/generated/prisma";
+import { CATALOG_CACHE_TAG } from "@/lib/catalog";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/uploads";
@@ -130,6 +131,15 @@ async function replaceProductMedia(productId: string, formData: FormData) {
   });
 }
 
+function bustCatalogCache(slug?: string) {
+  revalidateTag(CATALOG_CACHE_TAG);
+  revalidatePath("/");
+  revalidatePath("/admin/products");
+  if (slug) {
+    revalidatePath(`/product/${slug}`);
+  }
+}
+
 function actionError(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -156,9 +166,7 @@ export async function createProduct(
     });
 
     await replaceProductMedia(product.id, formData);
-    revalidatePath("/admin/products");
-    revalidatePath("/");
-    revalidatePath(`/product/${product.slug}`);
+    bustCatalogCache(product.slug);
   } catch (error) {
     console.error("createProduct failed", error);
     return { error: actionError(error) };
@@ -188,10 +196,8 @@ export async function updateProduct(
     });
 
     await replaceProductMedia(id, formData);
-    revalidatePath("/admin/products");
     revalidatePath(`/admin/products/edit/${id}`);
-    revalidatePath("/");
-    revalidatePath(`/product/${data.slug}`);
+    bustCatalogCache(data.slug);
   } catch (error) {
     console.error("updateProduct failed", error);
     return { error: actionError(error) };
@@ -223,7 +229,6 @@ export async function deleteProduct(formData: FormData) {
     );
   }
 
-  revalidatePath("/admin/products");
-  revalidatePath("/");
+  bustCatalogCache();
   redirect("/admin/products");
 }

@@ -3,7 +3,7 @@ import { Header } from '@/components/store/header';
 import { ProductDetails } from '@/components/store/product-details';
 import { getProductPageData } from '@/lib/catalog';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
