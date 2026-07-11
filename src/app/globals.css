@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #111111;
+  --muted: #707070;
+  --hairline: #e8e5df;
+  --surface: #f7f6f2;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-hairline: var(--hairline);
+  --color-surface: var(--surface);
+  --font-sans: var(--font-sans-family);
+  --font-serif: var(--font-editorial);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #ececec;
+  color: var(--foreground);
+  text-rendering: geometricPrecision;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: #ececec;
+  color: var(--foreground);
+  font-family: var(--font-sans-family), "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: #111111;
+  color: #ffffff;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes offers-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.offers-marquee {
+  animation: offers-marquee 22s linear infinite;
+}

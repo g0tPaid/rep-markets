@@ -1,0 +1,320 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+  HIDDEN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  phone         String?
+  passwordHash  String?
+  image         String?
+  role          UserRole  @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  orders    Order[]
+  wishlist  WishlistItem[]
+  addresses Address[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? 
+  access_token      String? 
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? 
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([sortOrder])
+  @@map("categories")
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  name             String
+  slug             String        @unique
+  shortDescription String?
+  longDescription  String?       
+  brand            String?
+  price            Float       
+  salePrice        Float?      
+  sku              String?       @unique
+  stock            Int           @default(0)
+  sizes            Json @default("[]")
+  colors           Json @default("[]")
+  tags             Json @default("[]")
+  weight           Float?
+  material         String?
+  status           ProductStatus @default(DRAFT)
+  featured         Boolean       @default(false)
+  newArrival       Boolean       @default(false)
+  homepageOrder    Int?
+  categoryId       String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category     Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  media        ProductMedia[]
+  orderItems   OrderItem[]
+  wishlist     WishlistItem[]
+  recentlyView RecentlyViewed[]
+
+  @@index([status, categoryId])
+  @@index([featured])
+  @@index([homepageOrder])
+  @@map("products")
+}
+
+model ProductMedia {
+  id        String    @id @default(cuid())
+  productId String
+  url       String
+  publicId  String?
+  type      MediaType @default(IMAGE)
+  kind      String    @default("ITEM") // ITEM | MODEL
+  alt       String?
+  sortOrder Int       @default(0)
+  width     Int?
+  height    Int?
+  createdAt DateTime  @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, kind, sortOrder])
+  @@map("product_media")
+}
+
+model MediaAsset {
+  id        String    @id @default(cuid())
+  url       String
+  publicId  String?
+  type      MediaType @default(IMAGE)
+  folder    String    @default("uploads")
+  name      String?
+  size      Int?
+  width     Int?
+  height    Int?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([folder])
+  @@map("media_assets")
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String
+  phone     String
+  email     String?
+  line1     String
+  line2     String?
+  city      String
+  state     String?
+  postalCode String?
+  country   String
+  createdAt DateTime @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orders Order[]
+
+  @@map("addresses")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  number         String      @unique
+  userId         String?
+  status         OrderStatus @default(PENDING)
+  email          String
+  phone          String
+  customerName   String
+  notes          String?
+  subtotal       Float     
+  discount       Float     @default(0) 
+  shipping       Float     @default(0) 
+  total          Float     
+  currency       String      @default("USD")
+  couponCode     String?
+  shippingAddressId String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  shippingAddress Address?  @relation(fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String?
+  name      String
+  sku       String?
+  size      String?
+  color     String?
+  quantity  Int
+  unitPrice Float 
+  imageUrl  String?
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@map("order_items")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+model RecentlyViewed {
+  id        String   @id @default(cuid())
+  sessionId String
+  productId String
+  viewedAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, productId])
+  @@index([sessionId, viewedAt])
+  @@map("recently_viewed")
+}
+
+model Coupon {
+  id            String     @id @default(cuid())
+  code          String     @unique
+  type          CouponType
+  value         Float    
+  expiresAt     DateTime?
+  usageLimit    Int?
+  usedCount     Int        @default(0)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("coupons")
+}
+
+model SiteSettings {
+  id              String  @id @default("default")
+  siteName        String  @default("rep.markets")
+  logoUrl         String?
+  faviconUrl      String?
+  instagramUrl    String?
+  tiktokUrl       String?
+  whatsappNumber  String?
+  metaTitle       String?
+  metaDescription String? 
+  currency        String  @default("USD")
+  updatedAt       DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("page_views")
+}
