@@ -1,0 +1,15 @@
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
+**/node_modules
+**/.next
+**/.env
+**/.env.*
+**/uploads/**
+!public/uploads/.gitkeep
+agent-transcripts
+_admin_pending
+_auth_pending
+_auth_lib_pending.ts
