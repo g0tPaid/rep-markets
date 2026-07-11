@@ -21,7 +21,7 @@ export function ProductGrid({ products }: ProductGridProps) {
   }
 
   return (
-    <motion.section layout className="grid grid-cols-3 gap-x-1.5 gap-y-6 px-2 pb-16">
+    <motion.section layout className="grid grid-cols-3 gap-x-1.5 gap-y-2.5 px-2 pb-16">
       {products.map((product) => (
         <motion.div
           layout

@@ -38,8 +38,8 @@ export function ProductCard({ product }: ProductCardProps) {
           <Heart className={cn('size-3.5', liked && 'fill-black')} strokeWidth={1.7} />
         </button>
       </div>
-      <Link href={`/product/${product.slug}`} className="mt-2 block">
-        <h3 className="truncate text-[11px] font-medium uppercase tracking-[0.12em]">{product.name}</h3>
+      <Link href={`/product/${product.slug}`} className="mt-1.5 block">
+        <h3 className="truncate text-[11px] font-medium leading-tight uppercase tracking-[0.12em]">{product.name}</h3>
         <p className="mt-0.5 text-center text-[11px] font-medium leading-tight text-emerald-600">
           {formatPrice(product.salePrice ?? product.price)}
         </p>
