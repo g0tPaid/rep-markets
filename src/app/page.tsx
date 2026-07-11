@@ -42,13 +42,20 @@ export default function Home() {
       <OffersBanner />
       <section className="px-4 pb-7 pt-4">
         <h1 className="text-center font-serif text-[44px] leading-[0.95] tracking-[-0.05em]">
-          everything.
+          Anything
           <br />
-          straightforward
+          &amp; Everything
         </h1>
-        <p className="mx-auto mt-6 w-fit border border-black/15 bg-surface px-4 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-black/70">
-          Warehouses and offices in China and Dubai
-        </p>
+        <div className="mx-auto mt-6 max-w-[340px] space-y-3 text-center">
+          <p className="w-full border border-black/15 bg-surface px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-black/70">
+            China and Dubai
+          </p>
+          <p className="border border-black/10 bg-white px-4 py-3 text-[11px] leading-5 text-black/75">
+            There are some hidden coupon codes on this website. Find one, WhatsApp us, and you can get
+            up to <span className="font-semibold text-black">50% off</span> — and sometimes{' '}
+            <span className="font-semibold text-black">free shipping</span>.
+          </p>
+        </div>
         <aside
           role="note"
           aria-label="Shipping time notice"

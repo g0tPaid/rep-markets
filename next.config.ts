@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
       // Up to 8 product images × ~8MB each
       bodySizeLimit: '64mb',
     },
+    // Allow large single-image uploads via /api/admin/upload
+    middlewareClientMaxBodySize: '64mb',
   },
   images: {
     remotePatterns: [
