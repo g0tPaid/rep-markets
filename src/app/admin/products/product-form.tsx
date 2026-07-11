@@ -251,6 +251,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setClientError('');
+    setProgress({ pct: 4, label: 'Preparing…' });
 
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -265,14 +266,14 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         const { file, index } = uploads[i];
         const base = Math.round((i / Math.max(uploads.length, 1)) * 85);
         setProgress({
-          pct: base,
+          pct: Math.max(4, base),
           label: `Uploading image ${i + 1} of ${uploads.length}…`,
         });
 
         const url = await uploadFile(file, (filePct) => {
           const overall = base + Math.round((filePct / 100) * (85 / Math.max(uploads.length, 1)));
           setProgress({
-            pct: Math.min(85, overall),
+            pct: Math.min(85, Math.max(4, overall)),
             label: `Uploading image ${i + 1} of ${uploads.length}… ${filePct}%`,
           });
         });
@@ -727,14 +728,32 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         </div>
       </section>
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={busy}
-          className="bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {busy ? 'Working…' : submitLabel}
-        </button>
+      <div className="space-y-3">
+        {progress ? (
+          <div className="border border-black/10 bg-white p-4">
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span>{progress.label}</span>
+              <span className="font-medium">{progress.pct}%</span>
+            </div>
+            <div className="h-2 overflow-hidden bg-neutral-100">
+              <div className="h-full bg-black transition-all duration-200" style={{ width: `${progress.pct}%` }} />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={busy}
+            className="min-w-[180px] bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-80"
+          >
+            {busy
+              ? progress
+                ? `${progress.pct}% · ${progress.label}`
+                : 'Saving…'
+              : submitLabel}
+          </button>
+        </div>
       </div>
     </form>
   );
