@@ -55,9 +55,6 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
           <br />
           &amp; Everything
         </h1>
-        <p className="mt-1.5 text-center text-[11px] leading-4 text-black/55">
-          Office and warehouse in China and Dubai
-        </p>
         <div className="mx-auto mt-3 max-w-[340px] text-center">
           <p className="border border-black/10 bg-white px-4 py-2.5 text-[11px] leading-5 text-black/75">
             There are some hidden coupon codes on this website. Find one, WhatsApp us, and you can get
