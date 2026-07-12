@@ -46,7 +46,7 @@ export function VisitorBeacon() {
     void ping(pathname);
     const interval = window.setInterval(() => {
       void ping(pathname);
-    }, 45_000);
+    }, 90_000);
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') void ping(pathname);

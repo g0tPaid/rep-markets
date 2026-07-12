@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 
@@ -39,6 +39,10 @@ function safeJoin(root: string, ...parts: string[]) {
   return resolved;
 }
 
+function cachePathForId(id: string) {
+  return safeJoin(getUploadRoot(), 'cache', id);
+}
+
 async function mirrorToDisk(buffer: Buffer, folder: string, filename: string) {
   try {
     const absoluteDir = safeJoin(getUploadRoot(), folder);
@@ -46,6 +50,26 @@ async function mirrorToDisk(buffer: Buffer, folder: string, filename: string) {
     await writeFile(path.join(absoluteDir, filename), buffer);
   } catch (error) {
     console.warn('disk mirror skipped', error);
+  }
+}
+
+async function writeServeCache(id: string, buffer: Buffer) {
+  try {
+    const filePath = cachePathForId(id);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, buffer);
+  } catch {
+    // cache is best-effort
+  }
+}
+
+export async function readServeCache(id: string) {
+  try {
+    const filePath = cachePathForId(id);
+    if (!existsSync(filePath)) return null;
+    return await readFile(filePath);
+  } catch {
+    return null;
   }
 }
 
@@ -67,13 +91,15 @@ export async function saveUploadedImage(file: File | null | undefined, folder = 
     throw new Error('Image must be 8MB or smaller.');
   }
 
-  const mimeType = ALLOWED_TYPES.has(type) ? type : extensionFor(type, file.name) === 'png'
-    ? 'image/png'
-    : extensionFor(type, file.name) === 'webp'
-      ? 'image/webp'
-      : extensionFor(type, file.name) === 'gif'
-        ? 'image/gif'
-        : 'image/jpeg';
+  const mimeType = ALLOWED_TYPES.has(type)
+    ? type
+    : extensionFor(type, file.name) === 'png'
+      ? 'image/png'
+      : extensionFor(type, file.name) === 'webp'
+        ? 'image/webp'
+        : extensionFor(type, file.name) === 'gif'
+          ? 'image/gif'
+          : 'image/jpeg';
 
   const ext = extensionFor(mimeType, file.name);
   const filename = `${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`;
@@ -86,10 +112,12 @@ export async function saveUploadedImage(file: File | null | undefined, folder = 
       size: buffer.byteLength,
       filename: `${folder}/${filename}`,
     },
+    select: { id: true },
   });
 
-  // Best-effort local copy (helps if a Railway volume is mounted).
-  await mirrorToDisk(buffer, folder, filename);
+  // Warm local serve-cache + optional volume mirror without blocking the upload response
+  void writeServeCache(stored.id, buffer);
+  void mirrorToDisk(buffer, folder, filename);
 
   return publicUrlForStoredFile(stored.id);
 }
@@ -115,7 +143,10 @@ export async function resolveUploadAbsolutePath(relativeParts: string[]) {
 
 export async function getStoredFile(id: string) {
   if (!id || id.includes('..') || id.includes('/')) return null;
-  return prisma.storedFile.findUnique({ where: { id } });
+  return prisma.storedFile.findUnique({
+    where: { id },
+    select: { id: true, mimeType: true, bytes: true, size: true, filename: true },
+  });
 }
 
 /** Match legacy `/api/media/products/foo.jpg` paths to DB rows saved with that filename. */
@@ -131,17 +162,16 @@ export async function getStoredFileByLegacyPath(parts: string[]) {
   const byFull = await prisma.storedFile.findFirst({
     where: { filename },
     orderBy: { createdAt: 'desc' },
+    select: { id: true, mimeType: true, bytes: true, size: true, filename: true },
   });
   if (byFull) return byFull;
 
   return prisma.storedFile.findFirst({
     where: {
-      OR: [
-        { filename: { endsWith: `/${basename}` } },
-        { filename: basename },
-      ],
+      OR: [{ filename: { endsWith: `/${basename}` } }, { filename: basename }],
     },
     orderBy: { createdAt: 'desc' },
+    select: { id: true, mimeType: true, bytes: true, size: true, filename: true },
   });
 }
 
@@ -153,7 +183,7 @@ export function isDurableMediaUrl(url: string | null | undefined) {
 export function isLegacyDiskMediaUrl(url: string | null | undefined) {
   if (!url) return false;
   return (
-    url.startsWith('/api/media/') &&
-    !url.startsWith('/api/media/f/')
-  ) || url.startsWith('/uploads/');
+    (url.startsWith('/api/media/') && !url.startsWith('/api/media/f/')) ||
+    url.startsWith('/uploads/')
+  );
 }

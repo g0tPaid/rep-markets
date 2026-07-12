@@ -11,13 +11,13 @@ type CatalogRow = {
   name: string;
   price: number;
   salePrice: number | null;
-  qualityPrices: unknown;
+  qualityPrices?: unknown;
   shortDescription: string | null;
   longDescription?: string | null;
-  material: string | null;
-  sizes: unknown;
-  colors: unknown;
-  tags: unknown;
+  material?: string | null;
+  sizes?: unknown;
+  colors?: unknown;
+  tags?: unknown;
   featured: boolean;
   homepageOrder: number | null;
   newArrival: boolean;
@@ -70,11 +70,7 @@ const listSelect = {
   name: true,
   price: true,
   salePrice: true,
-  qualityPrices: true,
   shortDescription: true,
-  material: true,
-  sizes: true,
-  colors: true,
   tags: true,
   featured: true,
   homepageOrder: true,
@@ -91,6 +87,10 @@ const detailMediaSelect = {
 
 const detailSelect = {
   ...listSelect,
+  qualityPrices: true,
+  material: true,
+  sizes: true,
+  colors: true,
   longDescription: true,
   media: detailMediaSelect,
 } as const;
@@ -135,7 +135,7 @@ async function loadActiveProducts(): Promise<StoreProduct[]> {
 /** Cached at runtime only — pages stay dynamic so Docker builds need no DATABASE_URL. */
 export function getActiveProducts(): Promise<StoreProduct[]> {
   return unstable_cache(loadActiveProducts, ['active-products'], {
-    revalidate: 30,
+    revalidate: 60,
     tags: [CATALOG_CACHE_TAG],
   })();
 }

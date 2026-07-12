@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import type { StoreProduct } from '@/lib/products';
 import { ProductCard } from '@/components/store/product-card';
 
@@ -21,18 +20,10 @@ export function ProductGrid({ products }: ProductGridProps) {
   }
 
   return (
-    <motion.section layout className="grid grid-cols-3 gap-x-1.5 gap-y-2.5 px-2 pb-16">
-      {products.map((product) => (
-        <motion.div
-          layout
-          key={product.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24 }}
-        >
-          <ProductCard product={product} />
-        </motion.div>
+    <section className="grid grid-cols-3 gap-x-1.5 gap-y-2.5 px-2 pb-16">
+      {products.map((product, index) => (
+        <ProductCard key={product.id} product={product} priority={index < 6} />
       ))}
-    </motion.section>
+    </section>
   );
 }

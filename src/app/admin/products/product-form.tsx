@@ -148,20 +148,22 @@ function uploadFile(file: File, onProgress: (pct: number) => void) {
 }
 
 /** Shrink large photos before upload so create feels faster. */
-async function compressImage(file: File, maxEdge = 1600, quality = 0.82): Promise<File> {
+async function compressImage(file: File, maxEdge = 1280, quality = 0.72): Promise<File> {
   if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
-  if (file.size < 400_000) return file;
+  if (file.size < 220_000) return file;
 
   try {
     const bitmap = await createImageBitmap(file);
     const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
-    if (scale >= 1 && file.size < 1_500_000) {
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    // Already small enough after natural dimensions
+    if (scale >= 1 && file.size < 700_000) {
       bitmap.close();
       return file;
     }
 
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -173,13 +175,21 @@ async function compressImage(file: File, maxEdge = 1600, quality = 0.82): Promis
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
 
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', quality),
-    );
-    if (!blob) return file;
+    const preferWebp =
+      typeof canvas.toBlob === 'function' &&
+      typeof HTMLCanvasElement !== 'undefined';
 
+    const blob =
+      (preferWebp
+        ? await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', quality))
+        : null) ||
+      (await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality)));
+
+    if (!blob || blob.size >= file.size * 0.95) return file;
+
+    const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
-    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+    return new File([blob], `${baseName}.${ext}`, { type: blob.type });
   } catch {
     return file;
   }
@@ -301,22 +311,30 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
 
       if (pendingUploads.length) {
         setProgress({ pct: 8, label: `Optimizing ${pendingUploads.length} image(s)…` });
-        const prepared = await Promise.all(
-          pendingUploads.map(async ({ item, index }) => ({
+        const prepared = await mapPool(
+          pendingUploads,
+          3,
+          async ({ item, index }) => ({
             index,
             file: await compressImage(item.file as File),
-          })),
+          }),
+          (done, total) => {
+            setProgress({
+              pct: 8 + Math.round((done / total) * 12),
+              label: `Optimized ${done} of ${total}…`,
+            });
+          },
         );
 
         let completed = 0;
         await mapPool(
           prepared,
-          3,
+          4,
           async ({ file, index }) => {
             const url = await uploadFile(file, () => {
-              const pct = 10 + Math.round(((completed + 0.5) / prepared.length) * 75);
+              const pct = 22 + Math.round(((completed + 0.5) / prepared.length) * 65);
               setProgress({
-                pct: Math.min(85, pct),
+                pct: Math.min(88, pct),
                 label: `Uploading images… ${completed + 1}/${prepared.length}`,
               });
             });
@@ -326,7 +344,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           (done, total) => {
             completed = done;
             setProgress({
-              pct: 10 + Math.round((done / total) * 75),
+              pct: 22 + Math.round((done / total) * 65),
               label: `Uploaded ${done} of ${total}…`,
             });
           },
@@ -772,7 +790,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           <p className="mt-1 text-sm text-black/55">
             Upload up to 15 photos at once (hold Ctrl/Cmd to multi-select). First image is the cover —
             use Make cover or arrows to change order.
-            Photos are compressed before upload for speed.
+            Photos are compressed (WebP/JPEG ~1280px) before upload for speed.
           </p>
         </div>
         <ProductImageGallery items={gallery} onChange={setGallery} max={IMAGE_SLOTS} />

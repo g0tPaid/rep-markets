@@ -9,9 +9,10 @@ import { cn, formatPrice } from '@/lib/utils';
 
 type ProductCardProps = {
   product: StoreProduct & { image?: string };
+  priority?: boolean;
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, priority = false }: ProductCardProps) {
   const toggle = useWishlist((state) => state.toggle);
   const liked = useWishlist((state) => state.has(product.id));
   const image = product.image || product.images[0];
@@ -26,7 +27,8 @@ export function ProductCard({ product }: ProductCardProps) {
             <img
               src={image}
               alt={product.name}
-              loading="lazy"
+              loading={priority ? 'eager' : 'lazy'}
+              fetchPriority={priority ? 'high' : 'low'}
               decoding="async"
               onError={() => setBroken(true)}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
