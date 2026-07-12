@@ -34,4 +34,4 @@ COPY --from=builder /app/next.config.ts ./next.config.ts
 ENV UPLOAD_DIR=/app/uploads
 RUN mkdir -p /app/uploads/products /app/public/uploads/products && chmod -R 777 /app/uploads /app/public/uploads
 EXPOSE 3000
-CMD ["sh", "-c", "mkdir -p /app/uploads/products && echo \"Starting Next.js on 0.0.0.0:3000\" && exec pnpm exec next start --hostname 0.0.0.0 --port 3000"]
+CMD ["sh", "-c", "mkdir -p /app/uploads/products && echo \"Running migrations...\" && pnpm exec prisma migrate deploy && echo \"Starting Next.js on 0.0.0.0:3000\" && exec pnpm exec next start --hostname 0.0.0.0 --port 3000"]
