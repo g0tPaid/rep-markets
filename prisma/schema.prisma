@@ -332,8 +332,26 @@ model PageView {
   id        String   @id @default(cuid())
   path      String
   sessionId String?
+  country   String?
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([sessionId])
+  @@index([country])
   @@map("page_views")
+}
+
+/// Unique browser visitor (cookie / localStorage id) for totals + live presence.
+model SiteVisitor {
+  id          String   @id @default(cuid())
+  visitorId   String   @unique
+  country     String?
+  countryName String?
+  hitCount    Int      @default(1)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([lastSeenAt])
+  @@index([country])
+  @@map("site_visitors")
 }

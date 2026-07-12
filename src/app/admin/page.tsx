@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { VisitorAnalyticsPanel } from "@/components/admin/visitor-analytics-panel";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -87,7 +88,8 @@ export default async function AdminDashboardPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em]">New order notification</p>
               <p className="mt-2 text-lg font-semibold">
-                {pendingOrders.length} pending order{pendingOrders.length === 1 ? "" : "s"} — contact for payment &amp; QC
+                {pendingOrders.length} pending order{pendingOrders.length === 1 ? "" : "s"} — contact
+                for payment &amp; QC
               </p>
             </div>
             <Link
@@ -113,6 +115,8 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
       ) : null}
+
+      <VisitorAnalyticsPanel />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
