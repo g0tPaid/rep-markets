@@ -46,6 +46,11 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
         featured: true,
         homepageOrder: true,
         category: { select: { name: true } },
+        media: {
+          orderBy: { sortOrder: "asc" },
+          take: 1,
+          select: { url: true, alt: true },
+        },
       },
       orderBy: [{ featured: "desc" }, { homepageOrder: "asc" }, { createdAt: "desc" }],
     }),
@@ -100,11 +105,31 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10">
-              {products.map((product) => (
+              {products.map((product) => {
+                const thumb = product.media[0]?.url;
+                return (
                 <tr key={product.id} className={product.featured ? "bg-emerald-50/40" : undefined}>
-                  <td className="px-4 py-4">
-                    <div className="font-medium">{product.name}</div>
-                    <div className="mt-1 text-xs text-black/50">{product.sku ?? product.slug}</div>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative size-12 shrink-0 overflow-hidden border border-black/10 bg-neutral-100">
+                        {thumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={thumb}
+                            alt={product.media[0]?.alt || product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-[9px] text-black/35">
+                            N/A
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-medium">{product.name}</div>
+                        <div className="mt-1 truncate text-xs text-black/50">{product.sku ?? product.slug}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-4">{product.category?.name ?? "Unassigned"}</td>
                   <td className="px-4 py-4">
@@ -152,7 +177,8 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
