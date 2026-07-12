@@ -22,6 +22,7 @@ type CategoryOption = {
   id: string;
   name: string;
   parentName?: string | null;
+  isVisible?: boolean;
 };
 
 type ProductForForm = {
@@ -459,6 +460,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.parentName ? `${category.parentName} / ${category.name}` : category.name}
+                {category.isVisible === false ? " (hidden on shop)" : ""}
               </option>
             ))}
           </select>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { updateProduct } from "@/app/admin/actions/products";
 import { ProductForm } from "@/app/admin/products/product-form";
 import { requireAdmin } from "@/lib/auth";
+import { getAdminCategoryOptions } from "@/lib/admin-categories";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +22,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       where: { id },
       include: { media: { orderBy: { sortOrder: "asc" } } },
     }),
-    prisma.category.findMany({
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, parent: { select: { name: true } } },
-    }),
+    getAdminCategoryOptions(),
   ]);
 
   if (!product) {
@@ -58,11 +56,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       </div>
       <ProductForm
         action={updateProduct.bind(null, product.id)}
-        categories={categories.map((category) => ({
-          id: category.id,
-          name: category.name,
-          parentName: category.parent?.name ?? null,
-        }))}
+        categories={categories}
         product={productForForm}
         submitLabel="Save product"
       />
