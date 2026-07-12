@@ -97,7 +97,7 @@ async function loadActiveProducts(): Promise<StoreProduct[]> {
   const products = (await prisma.product.findMany({
     where: { status: ProductStatus.ACTIVE },
     select: listSelect,
-    orderBy: [{ homepageOrder: 'asc' }, { createdAt: 'desc' }],
+    orderBy: [{ featured: 'desc' }, { homepageOrder: 'asc' }, { createdAt: 'desc' }],
   } as never)) as unknown as CatalogRow[];
 
   return products.map(normalizeProduct);

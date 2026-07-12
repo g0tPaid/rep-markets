@@ -232,3 +232,41 @@ export async function deleteProduct(formData: FormData) {
   bustCatalogCache();
   redirect("/admin/products");
 }
+
+const MAX_FEATURED = 6;
+
+export async function toggleFeaturedProduct(formData: FormData) {
+  await requireAdmin();
+
+  const id = stringValue(formData, "id");
+  if (!id) return;
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { id: true, featured: true, slug: true },
+  });
+
+  if (!product) return;
+
+  if (product.featured) {
+    await prisma.product.update({
+      where: { id },
+      data: { featured: false, homepageOrder: null },
+    });
+    bustCatalogCache(product.slug);
+    redirect("/admin/products");
+  }
+
+  const featuredCount = await prisma.product.count({ where: { featured: true } });
+  if (featuredCount >= MAX_FEATURED) {
+    redirect("/admin/products?featuredError=limit");
+  }
+
+  await prisma.product.update({
+    where: { id },
+    data: { featured: true, homepageOrder: featuredCount + 1 },
+  });
+
+  bustCatalogCache(product.slug);
+  redirect("/admin/products");
+}

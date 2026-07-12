@@ -26,7 +26,10 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
   const [page, setPage] = useState(1);
 
   const products = useMemo(() => {
-    const filtered = filterProducts(catalog, category, view);
+    const filtered = filterProducts(catalog, category, view).slice().sort((a, b) => {
+      if (Boolean(a.featured) === Boolean(b.featured)) return 0;
+      return a.featured ? -1 : 1;
+    });
     return Array.from({ length: page }, (_, index) =>
       filtered.map((product) => ({
         ...product,
