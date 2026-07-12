@@ -240,7 +240,8 @@ export async function saveUploadedImage(file: File | null | undefined, folder = 
   const stored = await prisma.storedFile.create({
     data: {
       mimeType: optimized.mimeType,
-      bytes: optimized.buffer,
+      // Prisma Bytes expects Uint8Array; Buffer's ArrayBufferLike typing breaks on Node 20+
+      bytes: Uint8Array.from(optimized.buffer),
       size: optimized.buffer.byteLength,
       filename: `${folder}/${filename}`,
     },
