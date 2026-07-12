@@ -176,6 +176,19 @@ model ProductMedia {
   @@map("product_media")
 }
 
+/// Durable product uploads (survives Railway redeploys without a volume).
+model StoredFile {
+  id        String   @id @default(cuid())
+  mimeType  String
+  bytes     Bytes
+  size      Int
+  filename  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("stored_files")
+}
+
 model MediaAsset {
   id        String    @id @default(cuid())
   url       String

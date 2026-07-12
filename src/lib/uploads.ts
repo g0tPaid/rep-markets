@@ -3,6 +3,8 @@ import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 
+import { prisma } from '@/lib/prisma';
+
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_BYTES = 8 * 1024 * 1024;
 
@@ -15,7 +17,7 @@ function extensionFor(type: string, filename: string) {
   return fromName || 'jpg';
 }
 
-/** Persistent disk when Railway volume is mounted; otherwise local ./uploads. */
+/** Optional local/volume mirror — DB is the source of truth. */
 export function getUploadRoot() {
   return (
     process.env.UPLOAD_DIR ||
@@ -24,16 +26,27 @@ export function getUploadRoot() {
   );
 }
 
-export function publicUrlFor(folder: string, filename: string) {
-  return `/api/media/${folder}/${filename}`;
+export function publicUrlForStoredFile(id: string) {
+  return `/api/media/f/${id}`;
 }
 
 function safeJoin(root: string, ...parts: string[]) {
   const resolved = path.resolve(root, ...parts);
-  if (!resolved.startsWith(path.resolve(root))) {
+  const normalizedRoot = path.resolve(root);
+  if (resolved !== normalizedRoot && !resolved.startsWith(normalizedRoot + path.sep)) {
     throw new Error('Invalid upload path.');
   }
   return resolved;
+}
+
+async function mirrorToDisk(buffer: Buffer, folder: string, filename: string) {
+  try {
+    const absoluteDir = safeJoin(getUploadRoot(), folder);
+    await mkdir(absoluteDir, { recursive: true });
+    await writeFile(path.join(absoluteDir, filename), buffer);
+  } catch (error) {
+    console.warn('disk mirror skipped', error);
+  }
 }
 
 export async function saveUploadedImage(file: File | null | undefined, folder = 'products') {
@@ -54,15 +67,31 @@ export async function saveUploadedImage(file: File | null | undefined, folder = 
     throw new Error('Image must be 8MB or smaller.');
   }
 
-  const ext = extensionFor(type, file.name);
+  const mimeType = ALLOWED_TYPES.has(type) ? type : extensionFor(type, file.name) === 'png'
+    ? 'image/png'
+    : extensionFor(type, file.name) === 'webp'
+      ? 'image/webp'
+      : extensionFor(type, file.name) === 'gif'
+        ? 'image/gif'
+        : 'image/jpeg';
+
+  const ext = extensionFor(mimeType, file.name);
   const filename = `${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`;
-  const absoluteDir = safeJoin(getUploadRoot(), folder);
-  await mkdir(absoluteDir, { recursive: true });
-
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(absoluteDir, filename), buffer);
 
-  return publicUrlFor(folder, filename);
+  const stored = await prisma.storedFile.create({
+    data: {
+      mimeType,
+      bytes: buffer,
+      size: buffer.byteLength,
+      filename: `${folder}/${filename}`,
+    },
+  });
+
+  // Best-effort local copy (helps if a Railway volume is mounted).
+  await mirrorToDisk(buffer, folder, filename);
+
+  return publicUrlForStoredFile(stored.id);
 }
 
 export async function resolveUploadAbsolutePath(relativeParts: string[]) {
@@ -71,11 +100,20 @@ export async function resolveUploadAbsolutePath(relativeParts: string[]) {
     return null;
   }
 
-  const primary = safeJoin(getUploadRoot(), ...cleaned);
-  if (existsSync(primary)) return primary;
+  try {
+    const primary = safeJoin(getUploadRoot(), ...cleaned);
+    if (existsSync(primary)) return primary;
 
-  const legacy = safeJoin(path.join(process.cwd(), 'public', 'uploads'), ...cleaned);
-  if (existsSync(legacy)) return legacy;
+    const legacy = safeJoin(path.join(process.cwd(), 'public', 'uploads'), ...cleaned);
+    if (existsSync(legacy)) return legacy;
+  } catch {
+    return null;
+  }
 
   return null;
+}
+
+export async function getStoredFile(id: string) {
+  if (!id || id.includes('..') || id.includes('/')) return null;
+  return prisma.storedFile.findUnique({ where: { id } });
 }
