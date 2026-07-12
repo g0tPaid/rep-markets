@@ -14,7 +14,7 @@ import {
   type StoreProduct,
 } from '@/lib/products';
 
-const FEED_PAGES = 3;
+const PAGE_SIZE = 12;
 
 type HomeCatalogProps = {
   products: StoreProduct[];
@@ -23,29 +23,28 @@ type HomeCatalogProps = {
 export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
   const [category, setCategory] = useState<ProductCategory>('ALL');
   const [view, setView] = useState<ProductView>('REPS');
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const products = useMemo(() => {
-    const filtered = filterProducts(catalog, category, view).slice().sort((a, b) => {
-      if (Boolean(a.featured) === Boolean(b.featured)) return 0;
-      return a.featured ? -1 : 1;
-    });
-    return Array.from({ length: page }, (_, index) =>
-      filtered.map((product) => ({
-        ...product,
-        id: index === 0 ? product.id : `${product.id}-${index}`,
-      })),
-    ).flat();
-  }, [catalog, category, page, view]);
+  const filtered = useMemo(() => {
+    return filterProducts(catalog, category, view)
+      .slice()
+      .sort((a, b) => {
+        if (Boolean(a.featured) === Boolean(b.featured)) return 0;
+        return a.featured ? -1 : 1;
+      });
+  }, [catalog, category, view]);
+
+  const products = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   function changeCategory(nextCategory: ProductCategory) {
     setCategory(nextCategory);
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
   }
 
   function changeView(nextView: ProductView) {
     setView(nextView);
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
   }
 
   return (
@@ -79,16 +78,21 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
       <CategoryNav value={category} onChange={changeCategory} />
       <SearchOverlay products={filterProducts(catalog, 'ALL', view)} />
       <ProductGrid products={products} />
-      {products.length ? (
+      {filtered.length ? (
         <div className="px-4 pb-6">
-          <button
-            type="button"
-            onClick={() => setPage((current) => Math.min(current + 1, FEED_PAGES))}
-            disabled={page >= FEED_PAGES}
-            className="w-full border border-black px-5 py-4 text-[11px] font-semibold tracking-[0.22em] disabled:border-hairline disabled:text-muted"
-          >
-            {page >= FEED_PAGES ? 'END OF EDIT' : 'LOAD MORE'}
-          </button>
+          {hasMore ? (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+              className="w-full border border-black px-5 py-4 text-[11px] font-semibold tracking-[0.22em]"
+            >
+              LOAD MORE
+            </button>
+          ) : (
+            <p className="w-full border border-hairline px-5 py-4 text-center text-[11px] font-semibold tracking-[0.22em] text-muted">
+              END OF EDIT
+            </p>
+          )}
         </div>
       ) : null}
       <section className="border-t border-hairline px-4 pb-12 pt-8">
