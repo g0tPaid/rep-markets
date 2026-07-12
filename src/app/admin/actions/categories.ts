@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth";
+import { CATALOG_CACHE_TAG } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 
 function value(formData: FormData, key: string) {
@@ -22,6 +23,12 @@ function slugify(input: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function bustCategoryCache() {
+  revalidateTag(CATALOG_CACHE_TAG);
+  revalidatePath("/");
+  revalidatePath("/admin/categories");
+}
+
 export async function createCategory(formData: FormData) {
   await requireAdmin();
   const name = value(formData, "name");
@@ -39,7 +46,7 @@ export async function createCategory(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin/categories");
+  bustCategoryCache();
 }
 
 export async function updateCategory(id: string, formData: FormData) {
@@ -60,7 +67,7 @@ export async function updateCategory(id: string, formData: FormData) {
     },
   });
 
-  revalidatePath("/admin/categories");
+  bustCategoryCache();
 }
 
 export async function deleteCategory(id: string) {
@@ -69,5 +76,5 @@ export async function deleteCategory(id: string) {
     where: { id },
   });
 
-  revalidatePath("/admin/categories");
+  bustCategoryCache();
 }

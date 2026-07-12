@@ -29,8 +29,9 @@ export default async function AdminCategoriesPage() {
         <p className="mt-2 text-sm text-black/55">
           Use <span className="font-medium text-black">REP</span> and{" "}
           <span className="font-medium text-black">NON-REP</span> as parent categories. Put products in
-          children (T-SHIRTS, SHOES, …) under the right parent — the home page REPS / NON-REP toggle
-          follows that.
+          children (T-SHIRTS, SHOES, SHORTS, …) under the right parent. Only{" "}
+          <span className="font-medium text-black">Visible</span> child categories appear as pills on
+          the home page.
         </p>
       </div>
 

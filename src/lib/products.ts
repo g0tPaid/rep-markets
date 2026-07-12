@@ -1,36 +1,32 @@
 import { slugify } from '@/lib/utils';
 
-/** Product type pills (under the selected REP / NON-REP line) */
+/** Fallback pills only — live homepage uses DB-visible categories. */
 export const CATEGORIES = [
   'ALL',
   'T-SHIRTS',
   'SHOES',
-  'CHAINS',
-  'BOTTOM',
+  'SHORTS',
   'ACCESSORIES',
-  'HEADWEAR',
+  'CAPS',
 ] as const;
 
 export const VIEWS = ['REPS', 'NON_REP'] as const;
 
-export type ProductCategory = (typeof CATEGORIES)[number];
 export type ProductView = (typeof VIEWS)[number];
-export type LeafCategory = Exclude<ProductCategory, 'ALL'>;
+/** Selected nav key: ALL or a category slug from admin */
+export type ProductCategory = string;
 export type CatalogLine = 'REP' | 'NON_REP';
+
+export type StoreNavCategory = {
+  slug: string;
+  label: string;
+  line: CatalogLine;
+};
 
 export const VIEW_LABELS: Record<ProductView, string> = {
   REPS: 'REPS',
   NON_REP: 'NON-REP',
 };
-
-export const REP_CHILDREN: LeafCategory[] = [
-  'T-SHIRTS',
-  'SHOES',
-  'CHAINS',
-  'BOTTOM',
-  'ACCESSORIES',
-  'HEADWEAR',
-];
 
 export const QUALITY_OPTIONS = [
   { id: 'NORMAL', label: 'Normal quality', multiplier: 1 },
@@ -90,7 +86,10 @@ export type StoreProduct = {
   qualityPrices?: QualityPriceMap;
   /** REP or NON-REP catalog line (from parent category in admin) */
   line: CatalogLine;
-  category: LeafCategory;
+  /** Display label from admin category name */
+  category: string;
+  /** Admin category slug — used for homepage filter pills */
+  categorySlug?: string;
   description: string;
   material: string;
   sizes: string[];
@@ -99,6 +98,8 @@ export type StoreProduct = {
   /** Ordered gallery (cover = first image) */
   images: string[];
   featured?: boolean;
+  /** Unique homepage slot 1–6 when featured */
+  homepageOrder?: number | null;
   newArrival?: boolean;
 };
 
@@ -134,6 +135,7 @@ export type PrismaProductShape = {
   colors?: string[] | null;
   tags?: string[] | null;
   featured?: boolean | null;
+  homepageOrder?: number | null;
   newArrival?: boolean | null;
   category?: PrismaCategoryShape | null;
   media?: PrismaMediaShape[] | null;
@@ -176,34 +178,21 @@ function toCatalogLine(category?: PrismaCategoryShape | null): CatalogLine {
   return 'REP';
 }
 
-function toCategory(input?: string | null): LeafCategory {
-  const normalized = (input || '').toUpperCase().replace(/_/g, '-').replace(/\s+/g, '-');
-  if (normalized.includes('SHOE')) return 'SHOES';
-  if (normalized.includes('CHAIN') || normalized.includes('JEWEL')) return 'CHAINS';
-  if (normalized.includes('BOTTOM') || normalized.includes('PANT') || normalized.includes('DENIM')) {
-    return 'BOTTOM';
-  }
-  if (normalized.includes('ACCESS') || normalized.includes('BAG') || normalized.includes('TOTE')) {
-    return 'ACCESSORIES';
-  }
-  if (normalized.includes('HEAD') || normalized.includes('CAP') || normalized.includes('HAT')) {
-    return 'HEADWEAR';
-  }
-  if (
-    normalized.includes('TOP') ||
-    normalized.includes('SHIRT') ||
-    normalized.includes('TANK') ||
-    normalized.includes('TEE')
-  ) {
-    return 'T-SHIRTS';
-  }
-  return 'T-SHIRTS';
+function toCategoryLabel(category?: PrismaCategoryShape | null, fallbackTag?: string | null) {
+  const raw = category?.name || category?.slug || fallbackTag || 'UNASSIGNED';
+  return raw.replace(/[_-]+/g, ' ').trim().toUpperCase() || 'UNASSIGNED';
+}
+
+function toCategorySlug(category?: PrismaCategoryShape | null, label?: string) {
+  if (category?.slug) return category.slug.toLowerCase();
+  return slugify(label || 'unassigned');
 }
 
 export function mapPrismaProductToStore(product: PrismaProductShape): StoreProduct {
   const media = [...(product.media ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   const gallery = media.map((image) => image.url).filter(Boolean) as string[];
   const fallback = mockImage(product.name, 'f7f7f2');
+  const categoryLabel = toCategoryLabel(product.category, product.tags?.[0]);
 
   return {
     id: product.id,
@@ -213,7 +202,8 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     salePrice: product.salePrice ? toNumber(product.salePrice) : null,
     qualityPrices: parseQualityPrices(product.qualityPrices),
     line: toCatalogLine(product.category),
-    category: toCategory(product.category?.slug || product.category?.name || product.tags?.[0]),
+    category: categoryLabel,
+    categorySlug: toCategorySlug(product.category, categoryLabel),
     description:
       product.longDescription ||
       product.shortDescription ||
@@ -224,6 +214,10 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     tags: product.tags ?? [],
     images: gallery.length ? gallery : [fallback],
     featured: Boolean(product.featured),
+    homepageOrder:
+      typeof product.homepageOrder === 'number' && Number.isFinite(product.homepageOrder)
+        ? product.homepageOrder
+        : null,
     newArrival: Boolean(product.newArrival),
   };
 }
@@ -381,13 +375,24 @@ export function filterProducts(
   category = 'ALL',
   view: ProductView = 'REPS',
 ) {
-  const selected = category.toUpperCase();
+  const selected = category.trim();
+  const selectedKey = selected.toLowerCase();
   const line: CatalogLine = view === 'NON_REP' ? 'NON_REP' : 'REP';
 
   const byLine = products.filter((product) => product.line === line);
 
   const filtered =
-    selected === 'ALL' ? byLine : byLine.filter((product) => product.category === selected);
+    !selected || selected.toUpperCase() === 'ALL'
+      ? byLine
+      : byLine.filter((product) => {
+          const slug = (product.categorySlug || '').toLowerCase();
+          const label = (product.category || '').toLowerCase();
+          return (
+            slug === selectedKey ||
+            label === selectedKey ||
+            slugify(product.category) === selectedKey
+          );
+        });
 
   return filtered.map((product) => ({
     ...product,

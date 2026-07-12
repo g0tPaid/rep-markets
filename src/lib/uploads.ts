@@ -117,3 +117,43 @@ export async function getStoredFile(id: string) {
   if (!id || id.includes('..') || id.includes('/')) return null;
   return prisma.storedFile.findUnique({ where: { id } });
 }
+
+/** Match legacy `/api/media/products/foo.jpg` paths to DB rows saved with that filename. */
+export async function getStoredFileByLegacyPath(parts: string[]) {
+  const cleaned = parts.map((part) => part.replace(/\\/g, '/')).filter(Boolean);
+  if (!cleaned.length || cleaned.some((part) => part.includes('..'))) {
+    return null;
+  }
+
+  const filename = cleaned.join('/');
+  const basename = cleaned[cleaned.length - 1];
+
+  const byFull = await prisma.storedFile.findFirst({
+    where: { filename },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (byFull) return byFull;
+
+  return prisma.storedFile.findFirst({
+    where: {
+      OR: [
+        { filename: { endsWith: `/${basename}` } },
+        { filename: basename },
+      ],
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export function isDurableMediaUrl(url: string | null | undefined) {
+  if (!url) return false;
+  return url.startsWith('/api/media/f/') || /^https?:\/\//i.test(url);
+}
+
+export function isLegacyDiskMediaUrl(url: string | null | undefined) {
+  if (!url) return false;
+  return (
+    url.startsWith('/api/media/') &&
+    !url.startsWith('/api/media/f/')
+  ) || url.startsWith('/uploads/');
+}

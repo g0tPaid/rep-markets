@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { ProductStatus } from '@/generated/prisma';
-import { mapPrismaProductToStore, type StoreProduct } from '@/lib/products';
+import { mapPrismaProductToStore, type StoreNavCategory, type StoreProduct, type CatalogLine } from '@/lib/products';
 import { prisma } from '@/lib/prisma';
 
 export const CATALOG_CACHE_TAG = 'catalog';
@@ -19,6 +19,7 @@ type CatalogRow = {
   colors: unknown;
   tags: unknown;
   featured: boolean;
+  homepageOrder: number | null;
   newArrival: boolean;
   categoryId?: string | null;
   category: {
@@ -76,6 +77,7 @@ const listSelect = {
   colors: true,
   tags: true,
   featured: true,
+  homepageOrder: true,
   newArrival: true,
   categoryId: true,
   category: categorySelect,
@@ -100,7 +102,34 @@ async function loadActiveProducts(): Promise<StoreProduct[]> {
     orderBy: [{ featured: 'desc' }, { homepageOrder: 'asc' }, { createdAt: 'desc' }],
   } as never)) as unknown as CatalogRow[];
 
-  return products.map(normalizeProduct);
+  const mapped = products.map(normalizeProduct);
+  const featuredSorted = mapped
+    .filter((product) => product.featured)
+    .sort((a, b) => {
+      const aOrder = a.homepageOrder ?? 999;
+      const bOrder = b.homepageOrder ?? 999;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.name.localeCompare(b.name);
+    })
+    .slice(0, 6);
+
+  const rankById = new Map(featuredSorted.map((product, index) => [product.id, index + 1]));
+
+  return mapped
+    .map((product) => {
+      const rank = rankById.get(product.id);
+      if (rank == null) {
+        return { ...product, featured: false, homepageOrder: null };
+      }
+      return { ...product, featured: true, homepageOrder: rank };
+    })
+    .sort((a, b) => {
+      if (a.featured && b.featured) {
+        return (a.homepageOrder ?? 999) - (b.homepageOrder ?? 999);
+      }
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return 0;
+    });
 }
 
 /** Cached at runtime only — pages stay dynamic so Docker builds need no DATABASE_URL. */
@@ -185,4 +214,45 @@ export async function getActiveProductsByIds(ids: string[]): Promise<StoreProduc
   return ids
     .map((id) => mapped.find((item) => item.id === id))
     .filter((item): item is StoreProduct => Boolean(item));
+}
+
+function parentToLine(parent?: { name: string; slug: string } | null): CatalogLine {
+  const bits = `${parent?.slug || ''} ${parent?.name || ''}`.toUpperCase();
+  if (bits.includes('NON')) return 'NON_REP';
+  return 'REP';
+}
+
+/** Visible leaf categories for homepage pills (respects admin isVisible). */
+export async function getStorefrontNavCategories(): Promise<StoreNavCategory[]> {
+  return unstable_cache(
+    async () => {
+      const categories = await prisma.category.findMany({
+        where: {
+          isVisible: true,
+          parentId: { not: null },
+        },
+        select: {
+          name: true,
+          slug: true,
+          sortOrder: true,
+          parent: { select: { name: true, slug: true, isVisible: true } },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      });
+
+      return categories
+        .filter((category) => {
+          // Skip orphans under hidden/unknown parents that aren't shop lines
+          const parentName = `${category.parent?.slug || ''} ${category.parent?.name || ''}`.toUpperCase();
+          return parentName.includes('REP') || parentName.includes('NON');
+        })
+        .map((category) => ({
+          slug: category.slug,
+          label: category.name.replace(/[_-]+/g, ' ').trim().toUpperCase(),
+          line: parentToLine(category.parent),
+        }));
+    },
+    ['storefront-nav-categories'],
+    { revalidate: 30, tags: [CATALOG_CACHE_TAG] },
+  )();
 }

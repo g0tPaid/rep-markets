@@ -752,22 +752,11 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         </div>
 
         <div>
-          <label className="block text-sm font-medium" htmlFor="homepageOrder">
-            Homepage order
+          <label className="flex items-center gap-2 text-sm">
+            <input name="featured" type="checkbox" defaultChecked={product?.featured ?? false} />
+            Featured (managed as one of 6 homepage slots — open Products to reorder)
           </label>
-          <input
-            id="homepageOrder"
-            name="homepageOrder"
-            type="number"
-            defaultValue={fieldValue(product?.homepageOrder)}
-            className="mt-2 w-full border border-black/15 px-3 py-2 outline-none focus:border-black"
-          />
         </div>
-
-        <label className="flex items-center gap-2 text-sm">
-          <input name="featured" type="checkbox" defaultChecked={product?.featured ?? false} />
-          Featured
-        </label>
 
         <label className="flex items-center gap-2 text-sm">
           <input name="newArrival" type="checkbox" defaultChecked={product?.newArrival ?? false} />

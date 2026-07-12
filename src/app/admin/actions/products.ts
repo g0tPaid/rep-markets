@@ -93,7 +93,8 @@ function productData(formData: FormData) {
     status: (stringValue(formData, "status") || "ACTIVE") as ProductStatus,
     featured: formData.get("featured") === "on",
     newArrival: formData.get("newArrival") === "on",
-    homepageOrder: optionalNumber(formData, "homepageOrder"),
+    // Slot order is owned by featured-slot tools — never take free-form values from the form
+    homepageOrder: null as number | null,
     categoryId: optionalString(formData, "categoryId"),
   };
 }
@@ -161,11 +162,25 @@ export async function createProduct(
   }
 
   try {
+    const wantsFeatured = data.featured;
+    if (wantsFeatured) {
+      const featuredCount = await prisma.product.count({ where: { featured: true } });
+      if (featuredCount >= MAX_FEATURED) {
+        return {
+          error: `Already ${MAX_FEATURED} featured products. Remove one from the slots on Products, then try again.`,
+        };
+      }
+    }
+
     const product = await prisma.product.create({
-      data,
+      data: {
+        ...data,
+        homepageOrder: wantsFeatured ? MAX_FEATURED + 1 : null,
+      },
     });
 
     await replaceProductMedia(product.id, formData);
+    await repairFeaturedSlots();
     bustCatalogCache(product.slug);
   } catch (error) {
     console.error("createProduct failed", error);
@@ -190,12 +205,28 @@ export async function updateProduct(
   }
 
   try {
+    const wantsFeatured = data.featured;
+    if (wantsFeatured) {
+      const featuredCount = await prisma.product.count({
+        where: { featured: true, NOT: { id } },
+      });
+      if (featuredCount >= MAX_FEATURED) {
+        return {
+          error: `Already ${MAX_FEATURED} featured products. Remove one from the slots on Products, then try again.`,
+        };
+      }
+    }
+
     await prisma.product.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        homepageOrder: wantsFeatured ? MAX_FEATURED + 1 : null,
+      },
     });
 
     await replaceProductMedia(id, formData);
+    await repairFeaturedSlots();
     revalidatePath(`/admin/products/edit/${id}`);
     bustCatalogCache(data.slug);
   } catch (error) {
@@ -235,6 +266,52 @@ export async function deleteProduct(formData: FormData) {
 
 const MAX_FEATURED = 6;
 
+/**
+ * Force featured products into unique slots 1…N (max 6).
+ * Drops extras beyond 6. Safe to run on every admin products visit.
+ */
+export async function repairFeaturedSlots() {
+  const featured = await prisma.product.findMany({
+    where: { featured: true },
+    select: { id: true, homepageOrder: true },
+    orderBy: [{ homepageOrder: "asc" }, { updatedAt: "desc" }, { createdAt: "asc" }],
+  });
+
+  const keep = featured.slice(0, MAX_FEATURED);
+  const drop = featured.slice(MAX_FEATURED);
+  const alreadyClean =
+    drop.length === 0 &&
+    keep.every((product, index) => product.homepageOrder === index + 1);
+
+  if (alreadyClean) return;
+
+  await prisma.$transaction([
+    ...drop.map((product) =>
+      prisma.product.update({
+        where: { id: product.id },
+        data: { featured: false, homepageOrder: null },
+      }),
+    ),
+    ...keep.map((product, index) =>
+      prisma.product.update({
+        where: { id: product.id },
+        data: {
+          featured: true,
+          homepageOrder: 1000 + index,
+        },
+      }),
+    ),
+    ...keep.map((product, index) =>
+      prisma.product.update({
+        where: { id: product.id },
+        data: { homepageOrder: index + 1 },
+      }),
+    ),
+  ]);
+
+  bustCatalogCache();
+}
+
 export async function toggleFeaturedProduct(formData: FormData) {
   await requireAdmin();
 
@@ -253,6 +330,7 @@ export async function toggleFeaturedProduct(formData: FormData) {
       where: { id },
       data: { featured: false, homepageOrder: null },
     });
+    await repairFeaturedSlots();
     bustCatalogCache(product.slug);
     redirect("/admin/products");
   }
@@ -264,9 +342,111 @@ export async function toggleFeaturedProduct(formData: FormData) {
 
   await prisma.product.update({
     where: { id },
-    data: { featured: true, homepageOrder: featuredCount + 1 },
+    data: { featured: true, homepageOrder: 1000 },
   });
+  await repairFeaturedSlots();
 
   bustCatalogCache(product.slug);
   redirect("/admin/products");
+}
+
+export async function moveFeaturedProduct(formData: FormData) {
+  await requireAdmin();
+
+  const id = stringValue(formData, "id");
+  const direction = stringValue(formData, "direction");
+  if (!id || (direction !== "up" && direction !== "down")) return;
+
+  const featured = await prisma.product.findMany({
+    where: { featured: true },
+    select: { id: true, slug: true },
+    orderBy: [{ homepageOrder: "asc" }, { updatedAt: "desc" }, { createdAt: "asc" }],
+  });
+
+  const index = featured.findIndex((product) => product.id === id);
+  if (index < 0) return;
+
+  const swapWith = direction === "up" ? index - 1 : index + 1;
+  if (swapWith < 0 || swapWith >= featured.length) {
+    redirect("/admin/products");
+  }
+
+  const ordered = featured.map((product) => product.id);
+  const tmp = ordered[index];
+  ordered[index] = ordered[swapWith];
+  ordered[swapWith] = tmp;
+
+  await prisma.$transaction([
+    ...ordered.map((productId, orderIndex) =>
+      prisma.product.update({
+        where: { id: productId },
+        data: { homepageOrder: 1000 + orderIndex },
+      }),
+    ),
+    ...ordered.map((productId, orderIndex) =>
+      prisma.product.update({
+        where: { id: productId },
+        data: { homepageOrder: orderIndex + 1 },
+      }),
+    ),
+  ]);
+
+  bustCatalogCache(featured[index]?.slug);
+  redirect("/admin/products");
+}
+
+/**
+ * Relink product_media rows that still point at dead disk paths
+ * (`/api/media/products/...`) when the bytes exist in stored_files by filename.
+ */
+export async function repairLegacyMediaLinks() {
+  await requireAdmin();
+
+  const { isLegacyDiskMediaUrl, publicUrlForStoredFile } = await import("@/lib/uploads");
+
+  const media = await prisma.productMedia.findMany({
+    select: { id: true, url: true, product: { select: { slug: true } } },
+  });
+
+  let linked = 0;
+  let stillMissing = 0;
+
+  for (const row of media) {
+    if (!isLegacyDiskMediaUrl(row.url)) continue;
+
+    const pathPart = row.url
+      .replace(/^\/uploads\//, "")
+      .replace(/^\/api\/media\//, "");
+    const parts = pathPart.split("/").filter(Boolean);
+    const filename = parts.join("/");
+    const basename = parts[parts.length - 1] || "";
+
+    const stored = await prisma.storedFile.findFirst({
+      where: {
+        OR: [
+          { filename },
+          { filename: { endsWith: `/${basename}` } },
+          { filename: basename },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+
+    if (!stored) {
+      stillMissing += 1;
+      continue;
+    }
+
+    await prisma.productMedia.update({
+      where: { id: row.id },
+      data: { url: publicUrlForStoredFile(stored.id) },
+    });
+    linked += 1;
+  }
+
+  bustCatalogCache();
+  redirect(
+    `/admin/products?mediaRepair=1&linked=${linked}&missing=${stillMissing}`,
+  );
 }
