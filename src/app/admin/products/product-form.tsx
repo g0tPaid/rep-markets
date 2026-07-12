@@ -61,26 +61,42 @@ type ProductFormProps = {
 
 const statuses = ['DRAFT', 'ACTIVE', 'ARCHIVED', 'HIDDEN'];
 const IMAGE_SLOTS = 15;
-const CLOTHES_SIZES = ['XS', 'S', 'M', 'L', 'XL'] as const;
+const CLOTHES_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL'] as const;
 const SHOE_EU = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'] as const;
 const SHOE_UK = ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] as const;
 const SHOE_US = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13'] as const;
+
+type SizeMode = 'clothes' | 'shoes' | 'custom' | 'none';
 
 function fieldValue(value: unknown) {
   return value === null || value === undefined ? '' : String(value);
 }
 
-function guessSizeMode(sizes: string[]): 'clothes' | 'shoes' {
+function guessSizeMode(sizes: string[]): SizeMode {
+  if (!sizes.length) return 'none';
+
   const joined = sizes.join(' ').toUpperCase();
-  if (joined.includes('EU') || joined.includes('UK') || joined.includes('US') || /\b\d{2}\b/.test(joined)) {
+  if (joined.includes('EU ') || joined.includes('UK ') || joined.includes('US ')) {
     return 'shoes';
   }
-  return 'clothes';
+
+  const normalized = sizes.map((size) => size.trim().toUpperCase());
+  const clothesSet = new Set<string>(CLOTHES_SIZES);
+  if (normalized.every((size) => clothesSet.has(size))) {
+    return 'clothes';
+  }
+
+  return 'custom';
 }
 
-function parseSelectedSizes(sizes: string[], mode: 'clothes' | 'shoes') {
+function parseSelectedSizes(sizes: string[], mode: SizeMode) {
+  if (mode === 'none') return [];
+  if (mode === 'custom') return sizes.map((size) => size.trim()).filter(Boolean);
   if (mode === 'clothes') {
-    return sizes.map((size) => size.toUpperCase()).filter((size) => CLOTHES_SIZES.includes(size as (typeof CLOTHES_SIZES)[number]));
+    const clothesSet = new Set<string>(CLOTHES_SIZES);
+    return sizes
+      .map((size) => size.trim().toUpperCase())
+      .filter((size) => clothesSet.has(size));
   }
 
   const selected = new Set(sizes.map((size) => size.trim().toUpperCase()));
@@ -89,6 +105,13 @@ function parseSelectedSizes(sizes: string[], mode: 'clothes' | 'shoes') {
     uk: SHOE_UK.filter((size) => selected.has(`UK ${size}`)).map((size) => `UK ${size}`),
     us: SHOE_US.filter((size) => selected.has(`US ${size}`)).map((size) => `US ${size}`),
   };
+}
+
+function parseCustomSizes(value: string) {
+  return value
+    .split(',')
+    .map((size) => size.trim())
+    .filter(Boolean);
 }
 
 function toggleValue(list: string[], value: string) {
@@ -218,14 +241,23 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
   const wasPendingRef = useRef(false);
 
   const initialMode = guessSizeMode(product?.sizes ?? []);
-  const [sizeMode, setSizeMode] = useState<'clothes' | 'shoes'>(initialMode);
+  const [sizeMode, setSizeMode] = useState<SizeMode>(initialMode);
   const initialParsed = parseSelectedSizes(product?.sizes ?? [], initialMode);
   const [clothesSizes, setClothesSizes] = useState<string[]>(
-    Array.isArray(initialParsed) ? initialParsed : [],
+    Array.isArray(initialParsed) && initialMode === 'clothes' ? initialParsed : [],
   );
-  const [shoeEu, setShoeEu] = useState<string[]>(Array.isArray(initialParsed) ? [] : initialParsed.eu);
-  const [shoeUk, setShoeUk] = useState<string[]>(Array.isArray(initialParsed) ? [] : initialParsed.uk);
-  const [shoeUs, setShoeUs] = useState<string[]>(Array.isArray(initialParsed) ? [] : initialParsed.us);
+  const [shoeEu, setShoeEu] = useState<string[]>(
+    !Array.isArray(initialParsed) ? initialParsed.eu : [],
+  );
+  const [shoeUk, setShoeUk] = useState<string[]>(
+    !Array.isArray(initialParsed) ? initialParsed.uk : [],
+  );
+  const [shoeUs, setShoeUs] = useState<string[]>(
+    !Array.isArray(initialParsed) ? initialParsed.us : [],
+  );
+  const [customSizesText, setCustomSizesText] = useState(
+    initialMode === 'custom' ? (product?.sizes ?? []).join(', ') : '',
+  );
 
   const sortedMedia = useMemo(
     () => [...(product?.media ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
@@ -239,7 +271,13 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
   );
 
   const selectedSizes =
-    sizeMode === 'clothes' ? clothesSizes : [...shoeEu, ...shoeUk, ...shoeUs];
+    sizeMode === 'none'
+      ? []
+      : sizeMode === 'custom'
+        ? parseCustomSizes(customSizesText)
+        : sizeMode === 'clothes'
+          ? clothesSizes
+          : [...shoeEu, ...shoeUk, ...shoeUs];
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -545,27 +583,27 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         <div className="md:col-span-3">
           <p className="text-sm font-medium">Sizes</p>
           <input type="hidden" name="sizes" value={selectedSizes.join(', ')} readOnly />
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setSizeMode('clothes')}
-              className={cn(
-                'border px-4 py-2 text-xs font-semibold tracking-[0.14em]',
-                sizeMode === 'clothes' ? 'border-black bg-black text-white' : 'border-black/15',
-              )}
-            >
-              CLOTHES
-            </button>
-            <button
-              type="button"
-              onClick={() => setSizeMode('shoes')}
-              className={cn(
-                'border px-4 py-2 text-xs font-semibold tracking-[0.14em]',
-                sizeMode === 'shoes' ? 'border-black bg-black text-white' : 'border-black/15',
-              )}
-            >
-              SHOES
-            </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(
+              [
+                { id: 'clothes', label: 'CLOTHES' },
+                { id: 'shoes', label: 'SHOES' },
+                { id: 'custom', label: 'CUSTOM' },
+                { id: 'none', label: 'NO SIZE' },
+              ] as const
+            ).map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setSizeMode(mode.id)}
+                className={cn(
+                  'border px-4 py-2 text-xs font-semibold tracking-[0.14em]',
+                  sizeMode === mode.id ? 'border-black bg-black text-white' : 'border-black/15',
+                )}
+              >
+                {mode.label}
+              </button>
+            ))}
           </div>
 
           {sizeMode === 'clothes' ? (
@@ -579,7 +617,9 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
                 />
               ))}
             </div>
-          ) : (
+          ) : null}
+
+          {sizeMode === 'shoes' ? (
             <div className="mt-4 space-y-4">
               <div>
                 <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-black/55">EU</p>
@@ -630,7 +670,30 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
+
+          {sizeMode === 'custom' ? (
+            <div className="mt-4">
+              <label className="block text-sm text-black/60" htmlFor="customSizes">
+                Type sizes separated by commas (e.g. S/M, L/XL, 7 1/8, ONE SIZE)
+              </label>
+              <textarea
+                id="customSizes"
+                value={customSizesText}
+                onChange={(event) => setCustomSizesText(event.target.value)}
+                rows={3}
+                placeholder="S/M, L/XL, ONE SIZE"
+                className="mt-2 w-full border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
+              />
+            </div>
+          ) : null}
+
+          {sizeMode === 'none' ? (
+            <p className="mt-4 text-sm text-black/55">
+              No size options will be shown on the product page (good for accessories with no sizing).
+            </p>
+          ) : null}
+
           <p className="mt-3 text-xs text-black/50">
             Selected: {selectedSizes.length ? selectedSizes.join(', ') : 'none'}
           </p>

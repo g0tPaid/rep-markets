@@ -21,7 +21,7 @@ type ProductDetailsProps = {
 
 export function ProductDetails({ product, related }: ProductDetailsProps) {
   const addItem = useCart((state) => state.addItem);
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? 'ONE SIZE');
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? 'OS');
   const [selectedQuality, setSelectedQuality] = useState<QualityOptionId>('NORMAL');
   const [quantity, setQuantity] = useState(1);
 
@@ -65,26 +65,28 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted">Material: {product.material}</p>
       </section>
 
-      <section className="border-y border-hairline px-4 py-5">
-        <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">SIZE</p>
-        <div className="grid grid-cols-5 gap-2">
-          {product.sizes.map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => setSelectedSize(size)}
-              className={cn(
-                'border px-2 py-3 text-xs font-medium',
-                selectedSize === size ? 'border-black bg-black text-white' : 'border-hairline',
-              )}
-            >
-              {size}
-            </button>
-          ))}
-        </div>
-      </section>
+      {product.sizes.length ? (
+        <section className="border-y border-hairline px-4 py-5">
+          <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">SIZE</p>
+          <div className="grid grid-cols-5 gap-2">
+            {product.sizes.map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setSelectedSize(size)}
+                className={cn(
+                  'border px-2 py-3 text-xs font-medium',
+                  selectedSize === size ? 'border-black bg-black text-white' : 'border-hairline',
+                )}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="border-b border-hairline px-4 py-5">
+      <section className={cn('border-hairline px-4 py-5', product.sizes.length ? 'border-b' : 'border-y')}>
         <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">QUALITY</p>
         <div className="grid grid-cols-1 gap-2">
           {QUALITY_OPTIONS.map((option) => {
