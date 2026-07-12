@@ -1,12 +1,15 @@
 import { existsSync } from 'fs';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 
 import { prisma } from '@/lib/prisma';
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_BYTES = 8 * 1024 * 1024;
+/** Cap stored image edge — smaller BYTEA = much faster Postgres writes on Railway. */
+const MAX_EDGE = 1100;
+const WEBP_QUALITY = 68;
 
 function extensionFor(type: string, filename: string) {
   if (type === 'image/jpeg') return 'jpg';
@@ -17,7 +20,7 @@ function extensionFor(type: string, filename: string) {
   return fromName || 'jpg';
 }
 
-/** Optional local/volume mirror — DB is the source of truth. */
+/** Optional local/volume mirror — DB is the source of truth (unless Cloudinary is configured). */
 export function getUploadRoot() {
   return (
     process.env.UPLOAD_DIR ||
@@ -28,6 +31,66 @@ export function getUploadRoot() {
 
 export function publicUrlForStoredFile(id: string) {
   return `/api/media/f/${id}`;
+}
+
+function cloudinaryConfigured() {
+  const cloudName =
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+}
+
+function signCloudinaryParams(params: Record<string, string | number>, apiSecret: string) {
+  const payload = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join('&');
+  return createHash('sha1').update(`${payload}${apiSecret}`).digest('hex');
+}
+
+/** Fast durable path — CDN URL, no Postgres BYTEA. */
+async function uploadToCloudinary(
+  buffer: Buffer,
+  mimeType: string,
+  folder: string,
+  filename: string,
+): Promise<string | null> {
+  const cfg = cloudinaryConfigured();
+  if (!cfg) return null;
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const publicId = filename.replace(/\.[^.]+$/, '');
+  const cloudFolder = `rep-markets/${folder}`;
+  const params = {
+    folder: cloudFolder,
+    public_id: publicId,
+    timestamp,
+  };
+  const signature = signCloudinaryParams(params, cfg.apiSecret);
+
+  const body = new FormData();
+  body.append('file', new Blob([new Uint8Array(buffer)], { type: mimeType }), filename);
+  body.append('api_key', cfg.apiKey);
+  body.append('timestamp', String(timestamp));
+  body.append('signature', signature);
+  body.append('folder', cloudFolder);
+  body.append('public_id', publicId);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`, {
+    method: 'POST',
+    body,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    console.warn('cloudinary upload failed', response.status, text.slice(0, 200));
+    return null;
+  }
+
+  const json = (await response.json()) as { secure_url?: string };
+  return json.secure_url || null;
 }
 
 function safeJoin(root: string, ...parts: string[]) {
@@ -73,6 +136,66 @@ export async function readServeCache(id: string) {
   }
 }
 
+/**
+ * Re-encode before Postgres BYTEA write. Client compress helps, but this is the
+ * safety net for large phone photos / failed canvas compress.
+ */
+async function optimizeForStorage(
+  buffer: Buffer,
+  mimeType: string,
+): Promise<{ buffer: Buffer; mimeType: string; ext: string }> {
+  if (mimeType === 'image/gif') {
+    return { buffer, mimeType, ext: 'gif' };
+  }
+
+  // Already tiny — skip CPU work
+  if (buffer.byteLength <= 140_000 && mimeType === 'image/webp') {
+    return { buffer, mimeType, ext: 'webp' };
+  }
+  if (buffer.byteLength <= 160_000 && mimeType === 'image/jpeg') {
+    return { buffer, mimeType, ext: 'jpg' };
+  }
+
+  try {
+    const sharp = (await import('sharp')).default;
+    const webp = await sharp(buffer, { failOn: 'none', animated: false })
+      .rotate()
+      .resize({
+        width: MAX_EDGE,
+        height: MAX_EDGE,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: WEBP_QUALITY, effort: 3 })
+      .toBuffer();
+
+    if (webp.byteLength > 0 && webp.byteLength < buffer.byteLength) {
+      return { buffer: webp, mimeType: 'image/webp', ext: 'webp' };
+    }
+
+    if (mimeType === 'image/jpeg' || mimeType === 'image/png') {
+      const jpeg = await sharp(buffer, { failOn: 'none' })
+        .rotate()
+        .resize({
+          width: MAX_EDGE,
+          height: MAX_EDGE,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 72, mozjpeg: true })
+        .toBuffer();
+      if (jpeg.byteLength > 0 && jpeg.byteLength < buffer.byteLength) {
+        return { buffer: jpeg, mimeType: 'image/jpeg', ext: 'jpg' };
+      }
+    }
+
+    return { buffer, mimeType, ext: extensionFor(mimeType, 'x') };
+  } catch (error) {
+    console.warn('image optimize skipped', error);
+    return { buffer, mimeType, ext: extensionFor(mimeType, 'x') };
+  }
+}
+
 export async function saveUploadedImage(file: File | null | undefined, folder = 'products') {
   if (!file || !(file instanceof File) || file.size === 0) {
     return null;
@@ -101,23 +224,32 @@ export async function saveUploadedImage(file: File | null | undefined, folder = 
           ? 'image/gif'
           : 'image/jpeg';
 
-  const ext = extensionFor(mimeType, file.name);
-  const filename = `${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const raw = Buffer.from(await file.arrayBuffer());
+  const optimized = await optimizeForStorage(raw, mimeType);
+  const filename = `${Date.now()}-${randomUUID().slice(0, 8)}.${optimized.ext}`;
+
+  // Prefer Cloudinary when configured — avoids slow Postgres BYTEA round-trips
+  const cloudUrl = await uploadToCloudinary(
+    optimized.buffer,
+    optimized.mimeType,
+    folder,
+    filename,
+  );
+  if (cloudUrl) return cloudUrl;
 
   const stored = await prisma.storedFile.create({
     data: {
-      mimeType,
-      bytes: buffer,
-      size: buffer.byteLength,
+      mimeType: optimized.mimeType,
+      bytes: optimized.buffer,
+      size: optimized.buffer.byteLength,
       filename: `${folder}/${filename}`,
     },
     select: { id: true },
   });
 
   // Warm local serve-cache + optional volume mirror without blocking the upload response
-  void writeServeCache(stored.id, buffer);
-  void mirrorToDisk(buffer, folder, filename);
+  void writeServeCache(stored.id, optimized.buffer);
+  void mirrorToDisk(optimized.buffer, folder, filename);
 
   return publicUrlForStoredFile(stored.id);
 }

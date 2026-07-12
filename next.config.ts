@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['sharp'],
   experimental: {
     serverActions: {
       // Up to 15 product images × ~8MB each
