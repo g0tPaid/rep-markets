@@ -84,7 +84,7 @@ function productData(formData: FormData) {
       MIRROR: optionalNumber(formData, "qualityPriceMIRROR"),
     },
     sku: optionalString(formData, "sku"),
-    stock: numberValue(formData, "stock"),
+    stock: numberValue(formData, "stock", 1000),
     sizes: csvValue(formData, "sizes"),
     colors: csvValue(formData, "colors"),
     tags: csvValue(formData, "tags"),

@@ -575,7 +575,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
             name="stock"
             type="number"
             min="0"
-            defaultValue={product?.stock ?? 0}
+            defaultValue={product?.stock ?? 1000}
             className="mt-2 w-full border border-black/15 px-3 py-2 outline-none focus:border-black"
           />
         </div>

@@ -131,7 +131,7 @@ model Product {
   /// Per-quality prices: { NORMAL, GOOD, HIGH, ONE_TO_ONE, MIRROR }
   qualityPrices    Json         @default("{}")
   sku              String?       @unique
-  stock            Int           @default(0)
+  stock            Int           @default(1000)
   sizes            Json @default("[]")
   colors           Json @default("[]")
   tags             Json @default("[]")
