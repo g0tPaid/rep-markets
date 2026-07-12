@@ -105,7 +105,7 @@ async function resolveImageUrl(formData: FormData, fileKey: string, existingKey:
 }
 
 async function replaceProductMedia(productId: string, formData: FormData) {
-  const MAX_IMAGES = 8;
+  const MAX_IMAGES = 15;
   const productName = stringValue(formData, "name") || "Product";
   const urls: string[] = [];
 

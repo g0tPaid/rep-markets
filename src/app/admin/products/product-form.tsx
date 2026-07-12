@@ -60,7 +60,7 @@ type ProductFormProps = {
 };
 
 const statuses = ['DRAFT', 'ACTIVE', 'ARCHIVED', 'HIDDEN'];
-const IMAGE_SLOTS = 8;
+const IMAGE_SLOTS = 15;
 const CLOTHES_SIZES = ['XS', 'S', 'M', 'L', 'XL'] as const;
 const SHOE_EU = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'] as const;
 const SHOE_UK = ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] as const;
@@ -716,7 +716,8 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         <div className="mb-4">
           <h2 className="text-lg font-semibold">Product images</h2>
           <p className="mt-1 text-sm text-black/55">
-            Upload up to 8 photos together. Reorder with arrows, set a cover, or remove any image.
+            Upload up to 15 photos at once (hold Ctrl/Cmd to multi-select). First image is the cover —
+            use Make cover or arrows to change order.
             Photos are compressed before upload for speed.
           </p>
         </div>

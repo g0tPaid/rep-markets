@@ -3,11 +3,11 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      // Up to 8 product images × ~8MB each
-      bodySizeLimit: '64mb',
+      // Up to 15 product images × ~8MB each
+      bodySizeLimit: '96mb',
     },
     // Allow large single-image uploads via /api/admin/upload
-    middlewareClientMaxBodySize: '64mb',
+    middlewareClientMaxBodySize: '96mb',
   },
   images: {
     remotePatterns: [

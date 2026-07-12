@@ -37,7 +37,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
     <main className="min-h-screen bg-white">
       <Header />
       <div className="grid grid-cols-2 gap-1 bg-white p-1">
-        {gallery.slice(0, 8).map((image, index) => (
+        {gallery.slice(0, 15).map((image, index) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={`${image}-${index}`}

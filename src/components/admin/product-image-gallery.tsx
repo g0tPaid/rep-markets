@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState, type ChangeEvent } from 'react';
+import { useEffect, useId, useState, type ChangeEvent, type DragEvent } from 'react';
 import { cn } from '@/lib/utils';
 
 export type GalleryItem = {
@@ -33,9 +33,10 @@ export function createGalleryItem(input: { url?: string; file?: File | null; pre
   };
 }
 
-export function ProductImageGallery({ items, onChange, max = 8 }: ProductImageGalleryProps) {
+export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageGalleryProps) {
   const bulkId = useId();
   const [error, setError] = useState('');
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -70,8 +71,13 @@ export function ProductImageGallery({ items, onChange, max = 8 }: ProductImageGa
       accepted.push(createGalleryItem({ file, preview: URL.createObjectURL(file) }));
     }
 
-    if (accepted.length) {
+    if (incoming.length > room) {
+      setError(`Only ${room} more image${room === 1 ? '' : 's'} can be added (max ${max}).`);
+    } else if (accepted.length) {
       setError('');
+    }
+
+    if (accepted.length) {
       setItems([...items, ...accepted]);
     }
   }
@@ -79,6 +85,12 @@ export function ProductImageGallery({ items, onChange, max = 8 }: ProductImageGa
   function handleBulk(event: ChangeEvent<HTMLInputElement>) {
     if (event.target.files?.length) addFiles(event.target.files);
     event.target.value = '';
+  }
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragging(false);
+    if (event.dataTransfer.files?.length) addFiles(event.dataTransfer.files);
   }
 
   function removeAt(index: number) {
@@ -110,9 +122,9 @@ export function ProductImageGallery({ items, onChange, max = 8 }: ProductImageGa
       <div className="flex flex-wrap items-center gap-3">
         <label
           htmlFor={bulkId}
-          className="cursor-pointer bg-black px-4 py-2 text-xs font-semibold tracking-[0.14em] text-white"
+          className="cursor-pointer bg-black px-4 py-2.5 text-xs font-semibold tracking-[0.14em] text-white"
         >
-          UPLOAD UP TO {max} IMAGES
+          CHOOSE MULTIPLE PHOTOS
         </label>
         <input
           id={bulkId}
@@ -123,18 +135,39 @@ export function ProductImageGallery({ items, onChange, max = 8 }: ProductImageGa
           className="sr-only"
         />
         <p className="text-sm text-black/55">
-          {items.length}/{max} selected · first image is the cover
+          {items.length}/{max} · select many at once · first = cover
         </p>
       </div>
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      {!items.length ? (
-        <div className="border border-dashed border-black/20 bg-neutral-50 px-4 py-10 text-center text-sm text-black/45">
-          No images yet. Upload one or many photos together.
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          setDragging(false);
+        }}
+        onDrop={onDrop}
+        className={cn(
+          'border border-dashed px-4 py-8 text-center transition',
+          dragging ? 'border-black bg-neutral-100' : 'border-black/20 bg-neutral-50',
+        )}
+      >
+        <p className="text-sm text-black/60">
+          Drag &amp; drop up to {max} images here, or use <span className="font-medium text-black">Choose multiple photos</span>
+        </p>
+        <p className="mt-1 text-xs text-black/45">On desktop: Ctrl/Cmd + click to pick several files in one go</p>
+      </div>
+
+      {items.length ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           {items.map((item, index) => (
             <div key={item.key} className="overflow-hidden border border-black/15 bg-white">
               <div className="relative aspect-[4/5] bg-neutral-100">
@@ -179,7 +212,9 @@ export function ProductImageGallery({ items, onChange, max = 8 }: ProductImageGa
                   <button
                     type="button"
                     onClick={() => removeAt(index)}
-                    className={cn('border border-red-600 px-2 py-1 text-[10px] font-semibold tracking-[0.12em] text-red-700')}
+                    className={cn(
+                      'border border-red-600 px-2 py-1 text-[10px] font-semibold tracking-[0.12em] text-red-700',
+                    )}
                   >
                     REMOVE
                   </button>
@@ -188,7 +223,7 @@ export function ProductImageGallery({ items, onChange, max = 8 }: ProductImageGa
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
