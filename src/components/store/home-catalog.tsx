@@ -26,6 +26,26 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
   const [category, setCategory] = useState<ProductCategory>('ALL');
   const [view, setView] = useState<ProductView>('REPS');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [shippingNoticeOpen, setShippingNoticeOpen] = useState(true);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('rm-shipping-notice-closed') === '1') {
+        setShippingNoticeOpen(false);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  function closeShippingNotice() {
+    setShippingNoticeOpen(false);
+    try {
+      sessionStorage.setItem('rm-shipping-notice-closed', '1');
+    } catch {
+      // ignore
+    }
+  }
 
   const lineCategories = useMemo(() => {
     const line = view === 'NON_REP' ? 'NON_REP' : 'REP';
@@ -79,22 +99,41 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
           <br />
           &amp; Everything
         </h1>
-        <aside
-          role="note"
-          aria-label="Shipping time notice"
-          className="mx-auto mt-3 w-full max-w-[360px] border border-red-600 bg-red-50 px-3 py-2 text-center text-red-700"
-        >
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em]">⚠ Shipping notice</p>
-          <p className="mt-1 text-[10px] leading-4">
-            See, these factories are located in villages. We source directly from factories. When they
-            send an item, it takes 2 to 3 days to reach us. Then we send you QC videos — that takes 1
-            day. Shipping takes another 2 days, and then usually it takes 9 to 14 days to reach your
-            place.
-          </p>
-          <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em]">
-            This is true numbers and no overpromises.
-          </p>
-        </aside>
+        {shippingNoticeOpen ? (
+          <aside
+            role="note"
+            aria-label="Shipping time notice"
+            className="relative mx-auto mt-3 w-full max-w-[360px] border border-red-600 bg-red-50 px-3 py-2 pr-9 text-center text-red-700"
+          >
+            <button
+              type="button"
+              onClick={closeShippingNotice}
+              aria-label="Close shipping notice"
+              className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center text-red-700 hover:bg-red-100"
+            >
+              <span aria-hidden className="text-base leading-none">
+                ×
+              </span>
+            </button>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.18em]">⚠ Shipping notice</p>
+            <p className="mt-1 text-[10px] leading-4">
+              See, these factories are located in villages. We source directly from factories. When they
+              send an item, it takes 2 to 3 days to reach us. Then we send you QC videos — that takes 1
+              day. Shipping takes another 2 days, and then usually it takes 9 to 14 days to reach your
+              place.
+            </p>
+            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em]">
+              This is true numbers and no overpromises.
+            </p>
+            <button
+              type="button"
+              onClick={closeShippingNotice}
+              className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] underline underline-offset-2"
+            >
+              Close
+            </button>
+          </aside>
+        ) : null}
       </section>
       <ViewToggle value={view} onChange={changeView} />
       <CategoryNav categories={lineCategories} value={category} onChange={changeCategory} />
