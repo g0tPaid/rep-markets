@@ -1,4 +1,4 @@
-import { slugify } from '@/lib/utils';
+import { formatPrice, slugify } from '@/lib/utils';
 
 /** Fallback pills only — live homepage uses DB-visible categories. */
 export const CATEGORIES = [
@@ -85,6 +85,31 @@ export function normalDisplayPrice(product: {
 }) {
   const base = product.salePrice ?? product.price;
   return priceForQuality(base, 'NORMAL', product.qualityPrices);
+}
+
+/** Lowest (Normal) → highest quality tier price for storefront range display. */
+export function qualityPriceRange(product: {
+  price: number;
+  salePrice?: number | null;
+  qualityPrices?: QualityPriceMap | null;
+}) {
+  const base = product.salePrice ?? product.price;
+  const prices = QUALITY_OPTIONS.map((option) =>
+    priceForQuality(base, option.id, product.qualityPrices),
+  );
+  const low = Math.min(...prices);
+  const high = Math.max(...prices);
+  return { low, high };
+}
+
+export function formatQualityPriceRange(product: {
+  price: number;
+  salePrice?: number | null;
+  qualityPrices?: QualityPriceMap | null;
+}) {
+  const { low, high } = qualityPriceRange(product);
+  if (Math.abs(high - low) < 0.01) return formatPrice(low);
+  return `${formatPrice(low)} – ${formatPrice(high)}`;
 }
 
 export type StoreProduct = {

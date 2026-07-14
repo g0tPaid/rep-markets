@@ -5,8 +5,7 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, X } from 'lucide-react';
 import type { StoreProduct } from '@/lib/products';
-import { normalDisplayPrice } from '@/lib/products';
-import { formatPrice } from '@/lib/utils';
+import { formatQualityPriceRange } from '@/lib/products';
 
 type SearchOverlayProps = {
   products: StoreProduct[];
@@ -87,7 +86,9 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
                           <span className="block truncate text-xs font-medium uppercase tracking-[0.12em]">{product.name}</span>
                           <span className="mt-1 block text-xs text-muted">{product.category}</span>
                         </span>
-                        <span className="text-xs">{formatPrice(normalDisplayPrice(product))}</span>
+                        <span className="shrink-0 text-right text-[10px] leading-tight">
+                          {formatQualityPriceRange(product)}
+                        </span>
                       </Link>
                     ))}
                   </div>
