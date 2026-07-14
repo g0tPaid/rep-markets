@@ -8,17 +8,26 @@ import {
   toggleFeaturedProduct,
 } from "@/app/admin/actions/products";
 import { requireAdmin } from "@/lib/auth";
+import {
+  catalogLineFromCategory,
+  MAX_FEATURED_PER_LINE,
+  type CatalogLine,
+} from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 import { isLegacyDiskMediaUrl } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
-const MAX_FEATURED = 6;
+const LINE_LABEL: Record<CatalogLine, string> = {
+  REP: "REP",
+  NON_REP: "NON-REP",
+};
 
 type ProductsPageProps = {
   searchParams?: Promise<{
     q?: string;
     featuredError?: string;
+    line?: string;
     mediaRepair?: string;
     linked?: string;
     missing?: string;
@@ -31,12 +40,13 @@ function money(value: unknown) {
 
 export default async function AdminProductsPage({ searchParams }: ProductsPageProps) {
   await requireAdmin();
-  // Heal any duplicate / gapped homepageOrder values left in the DB
   await repairFeaturedSlots();
 
   const params = await searchParams;
   const query = params?.q?.trim() ?? "";
   const featuredError = params?.featuredError;
+  const limitedLine =
+    params?.line === "NON_REP" || params?.line === "REP" ? (params.line as CatalogLine) : null;
   const mediaRepair = params?.mediaRepair;
   const linkedCount = Number(params?.linked || 0);
   const missingCount = Number(params?.missing || 0);
@@ -52,7 +62,13 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
     status: true,
     featured: true,
     homepageOrder: true,
-    category: { select: { name: true } },
+    category: {
+      select: {
+        name: true,
+        slug: true,
+        parent: { select: { name: true, slug: true } },
+      },
+    },
     media: {
       orderBy: { sortOrder: "asc" as const },
       take: 1,
@@ -72,7 +88,6 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
           }
         : undefined,
       select: productSelect,
-      // Stable list order — featured status does not jump rows around
       orderBy: [{ createdAt: "desc" }],
     }),
     prisma.product.findMany({
@@ -85,14 +100,17 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
     }),
   ]);
 
-  const featuredCount = featuredProducts.length;
+  const featuredByLine: Record<CatalogLine, typeof featuredProducts> = {
+    REP: featuredProducts.filter((product) => catalogLineFromCategory(product.category) === "REP"),
+    NON_REP: featuredProducts.filter(
+      (product) => catalogLineFromCategory(product.category) === "NON_REP",
+    ),
+  };
+
   const brokenProductIds = new Set(
     mediaRows.filter((row) => isLegacyDiskMediaUrl(row.url)).map((row) => row.productId),
   );
   const brokenImageCount = brokenProductIds.size;
-  const featuredSlots = Array.from({ length: MAX_FEATURED }, (_, index) => {
-    return featuredProducts[index] ?? null;
-  });
 
   return (
     <div className="space-y-6">
@@ -101,8 +119,9 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Catalog</p>
           <h1 className="mt-2 text-3xl font-semibold">Products</h1>
           <p className="mt-2 text-sm text-black/55">
-            Homepage featured: {featuredCount}/{MAX_FEATURED} — manage the 6 slots below, then add from the
-            list
+            Homepage featured: REP {featuredByLine.REP.length}/{MAX_FEATURED_PER_LINE} · NON-REP{" "}
+            {featuredByLine.NON_REP.length}/{MAX_FEATURED_PER_LINE} — manage slots below, then add from
+            the list
           </p>
         </div>
         <Link href="/admin/products/new" className="bg-black px-4 py-2 text-sm font-medium text-white">
@@ -112,7 +131,8 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
 
       {featuredError === "limit" ? (
         <div className="border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">
-          All {MAX_FEATURED} featured slots are full. Remove one from a slot above, then feature another.
+          All {MAX_FEATURED_PER_LINE} {limitedLine ? LINE_LABEL[limitedLine] : ""} featured slots are
+          full. Remove one from that line&apos;s slots above, then feature another.
         </div>
       ) : null}
 
@@ -142,101 +162,117 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
         </div>
       ) : null}
 
-      <section className="border border-black/10 bg-white p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Homepage featured slots</h2>
-            <p className="mt-1 text-sm text-black/55">
-              Fixed 6 spots. Remove frees a slot. Numbers always stay 1–{featuredCount || 0} in order.
-            </p>
-          </div>
-          <p className="text-sm font-medium text-black/70">
-            {featuredCount} filled · {MAX_FEATURED - featuredCount} open
-          </p>
-        </div>
+      {(["REP", "NON_REP"] as CatalogLine[]).map((line) => {
+        const lineFeatured = featuredByLine[line];
+        const featuredCount = lineFeatured.length;
+        const featuredSlots = Array.from({ length: MAX_FEATURED_PER_LINE }, (_, index) => {
+          return lineFeatured[index] ?? null;
+        });
+        const title =
+          line === "REP" ? "Homepage featured slots" : "NON-REP featured slots";
+        const blurb =
+          line === "REP"
+            ? `Fixed ${MAX_FEATURED_PER_LINE} spots for the REP homepage tab. Remove frees a slot. Numbers always stay 1–${featuredCount || 0} in order.`
+            : `Fixed ${MAX_FEATURED_PER_LINE} spots for the NON-REP homepage tab. Remove frees a slot. Numbers always stay 1–${featuredCount || 0} in order.`;
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredSlots.map((product, index) => {
-            const slot = index + 1;
-            if (!product) {
-              return (
-                <div
-                  key={`empty-${slot}`}
-                  className="flex min-h-[108px] flex-col justify-between border border-dashed border-black/20 bg-neutral-50 px-4 py-3"
-                >
-                  <p className="text-xs font-semibold tracking-[0.16em] text-black/40">SLOT {slot}</p>
-                  <p className="text-sm text-black/45">Empty — use Feature in the list</p>
-                </div>
-              );
-            }
-
-            const thumb = product.media[0]?.url;
-            return (
-              <div
-                key={product.id}
-                className="flex min-h-[108px] flex-col justify-between border border-emerald-600/30 bg-emerald-50/50 px-4 py-3"
-              >
-                <div className="flex gap-3">
-                  <div className="relative size-14 shrink-0 overflow-hidden border border-black/10 bg-white">
-                    {thumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={thumb}
-                        alt={product.media[0]?.alt || product.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-[9px] text-black/35">
-                        N/A
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold tracking-[0.16em] text-emerald-800">
-                      #{slot}
-                    </p>
-                    <p className="mt-1 truncate text-sm font-medium">{product.name}</p>
-                    <p className="truncate text-xs text-black/50">{product.sku ?? product.slug}</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <form action={moveFeaturedProduct}>
-                    <input type="hidden" name="id" value={product.id} />
-                    <input type="hidden" name="direction" value="up" />
-                    <button
-                      type="submit"
-                      disabled={slot === 1}
-                      className="border border-black/20 px-2 py-1 text-xs disabled:opacity-30"
-                    >
-                      ↑ Up
-                    </button>
-                  </form>
-                  <form action={moveFeaturedProduct}>
-                    <input type="hidden" name="id" value={product.id} />
-                    <input type="hidden" name="direction" value="down" />
-                    <button
-                      type="submit"
-                      disabled={slot === featuredCount}
-                      className="border border-black/20 px-2 py-1 text-xs disabled:opacity-30"
-                    >
-                      ↓ Down
-                    </button>
-                  </form>
-                  <form action={toggleFeaturedProduct}>
-                    <input type="hidden" name="id" value={product.id} />
-                    <button
-                      type="submit"
-                      className="border border-red-700/40 px-2 py-1 text-xs text-red-700"
-                    >
-                      Remove
-                    </button>
-                  </form>
-                </div>
+        return (
+          <section key={line} className="border border-black/10 bg-white p-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">{title}</h2>
+                <p className="mt-1 text-sm text-black/55">{blurb}</p>
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <p className="text-sm font-medium text-black/70">
+                {featuredCount} filled · {MAX_FEATURED_PER_LINE - featuredCount} open
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredSlots.map((product, index) => {
+                const slot = index + 1;
+                if (!product) {
+                  return (
+                    <div
+                      key={`${line}-empty-${slot}`}
+                      className="flex min-h-[108px] flex-col justify-between border border-dashed border-black/20 bg-neutral-50 px-4 py-3"
+                    >
+                      <p className="text-xs font-semibold tracking-[0.16em] text-black/40">
+                        SLOT {slot}
+                      </p>
+                      <p className="text-sm text-black/45">Empty — use Featured in the list</p>
+                    </div>
+                  );
+                }
+
+                const thumb = product.media[0]?.url;
+                return (
+                  <div
+                    key={product.id}
+                    className="flex min-h-[108px] flex-col justify-between border border-emerald-600/30 bg-emerald-50/50 px-4 py-3"
+                  >
+                    <div className="flex gap-3">
+                      <div className="relative size-14 shrink-0 overflow-hidden border border-black/10 bg-white">
+                        {thumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={thumb}
+                            alt={product.media[0]?.alt || product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-[9px] text-black/35">
+                            N/A
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold tracking-[0.16em] text-emerald-800">
+                          #{slot}
+                        </p>
+                        <p className="mt-1 truncate text-sm font-medium">{product.name}</p>
+                        <p className="truncate text-xs text-black/50">{product.sku ?? product.slug}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <form action={moveFeaturedProduct}>
+                        <input type="hidden" name="id" value={product.id} />
+                        <input type="hidden" name="direction" value="up" />
+                        <button
+                          type="submit"
+                          disabled={slot === 1}
+                          className="border border-black/20 px-2 py-1 text-xs disabled:opacity-30"
+                        >
+                          ↑ Up
+                        </button>
+                      </form>
+                      <form action={moveFeaturedProduct}>
+                        <input type="hidden" name="id" value={product.id} />
+                        <input type="hidden" name="direction" value="down" />
+                        <button
+                          type="submit"
+                          disabled={slot === featuredCount}
+                          className="border border-black/20 px-2 py-1 text-xs disabled:opacity-30"
+                        >
+                          ↓ Down
+                        </button>
+                      </form>
+                      <form action={toggleFeaturedProduct}>
+                        <input type="hidden" name="id" value={product.id} />
+                        <button
+                          type="submit"
+                          className="border border-red-700/40 px-2 py-1 text-xs text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
 
       <form className="flex gap-2" action="/admin/products">
         <input
@@ -256,6 +292,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
             <thead className="border-b border-black/10 bg-neutral-50 text-black/55">
               <tr>
                 <th className="px-4 py-3 font-medium">Product</th>
+                <th className="px-4 py-3 font-medium">Line</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Price</th>
                 <th className="px-4 py-3 font-medium">Stock</th>
@@ -267,8 +304,10 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
             <tbody className="divide-y divide-black/10">
               {products.map((product) => {
                 const thumb = product.media[0]?.url;
+                const line = catalogLineFromCategory(product.category);
+                const lineFeatured = featuredByLine[line];
                 const slot = product.featured
-                  ? featuredProducts.findIndex((item) => item.id === product.id) + 1
+                  ? lineFeatured.findIndex((item) => item.id === product.id) + 1
                   : 0;
                 const needsPhoto = brokenProductIds.has(product.id);
                 return (
@@ -297,6 +336,9 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-4 text-xs font-semibold tracking-[0.12em]">
+                      {LINE_LABEL[line]}
                     </td>
                     <td className="px-4 py-4">{product.category?.name ?? "Unassigned"}</td>
                     <td className="px-4 py-4">

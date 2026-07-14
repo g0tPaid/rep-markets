@@ -133,7 +133,7 @@ export type StoreProduct = {
   /** Ordered gallery (cover = first image) */
   images: string[];
   featured?: boolean;
-  /** Unique homepage slot 1–6 when featured */
+  /** Featured slot 1–6 within this product's catalog line (REP / NON-REP) */
   homepageOrder?: number | null;
   newArrival?: boolean;
 };
@@ -198,7 +198,10 @@ function toNumber(value: DecimalLike) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function toCatalogLine(category?: PrismaCategoryShape | null): CatalogLine {
+/** Max featured homepage slots per catalog line (REP and NON-REP each). */
+export const MAX_FEATURED_PER_LINE = 6;
+
+export function catalogLineFromCategory(category?: PrismaCategoryShape | null): CatalogLine {
   const bits = [
     category?.slug,
     category?.name,
@@ -211,6 +214,10 @@ function toCatalogLine(category?: PrismaCategoryShape | null): CatalogLine {
 
   if (bits.includes('NON')) return 'NON_REP';
   return 'REP';
+}
+
+function toCatalogLine(category?: PrismaCategoryShape | null): CatalogLine {
+  return catalogLineFromCategory(category);
 }
 
 function toCategoryLabel(category?: PrismaCategoryShape | null, fallbackTag?: string | null) {

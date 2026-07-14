@@ -1,6 +1,12 @@
 import { unstable_cache } from 'next/cache';
 import { ProductStatus } from '@/generated/prisma';
-import { mapPrismaProductToStore, type StoreNavCategory, type StoreProduct, type CatalogLine } from '@/lib/products';
+import {
+  mapPrismaProductToStore,
+  MAX_FEATURED_PER_LINE,
+  type StoreNavCategory,
+  type StoreProduct,
+  type CatalogLine,
+} from '@/lib/products';
 import { prisma } from '@/lib/prisma';
 
 export const CATALOG_CACHE_TAG = 'catalog';
@@ -103,17 +109,24 @@ async function loadActiveProducts(): Promise<StoreProduct[]> {
   } as never)) as unknown as CatalogRow[];
 
   const mapped = products.map(normalizeProduct);
-  const featuredSorted = mapped
-    .filter((product) => product.featured)
-    .sort((a, b) => {
-      const aOrder = a.homepageOrder ?? 999;
-      const bOrder = b.homepageOrder ?? 999;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return a.name.localeCompare(b.name);
-    })
-    .slice(0, 6);
+  const lines: CatalogLine[] = ['REP', 'NON_REP'];
+  const rankById = new Map<string, number>();
 
-  const rankById = new Map(featuredSorted.map((product, index) => [product.id, index + 1]));
+  for (const line of lines) {
+    const featuredSorted = mapped
+      .filter((product) => product.featured && product.line === line)
+      .sort((a, b) => {
+        const aOrder = a.homepageOrder ?? 999;
+        const bOrder = b.homepageOrder ?? 999;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, MAX_FEATURED_PER_LINE);
+
+    featuredSorted.forEach((product, index) => {
+      rankById.set(product.id, index + 1);
+    });
+  }
 
   return mapped
     .map((product) => {

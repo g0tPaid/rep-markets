@@ -6,12 +6,62 @@ import { redirect } from "next/navigation";
 import { ProductStatus } from "@/generated/prisma";
 import { CATALOG_CACHE_TAG } from "@/lib/catalog";
 import { requireAdmin } from "@/lib/auth";
+import {
+  catalogLineFromCategory,
+  MAX_FEATURED_PER_LINE,
+  type CatalogLine,
+} from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/uploads";
 
 export type ProductActionState = {
   error?: string;
 };
+
+const categoryLineSelect = {
+  name: true,
+  slug: true,
+  parent: { select: { name: true, slug: true } },
+} as const;
+
+async function resolveCatalogLine(categoryId: string | null | undefined): Promise<CatalogLine> {
+  if (!categoryId) return "REP";
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+    select: categoryLineSelect,
+  });
+  return catalogLineFromCategory(category);
+}
+
+async function countFeaturedInLine(line: CatalogLine, excludeId?: string) {
+  const featured = await prisma.product.findMany({
+    where: {
+      featured: true,
+      ...(excludeId ? { NOT: { id: excludeId } } : {}),
+    },
+    select: {
+      id: true,
+      category: { select: categoryLineSelect },
+    },
+  });
+  return featured.filter((product) => catalogLineFromCategory(product.category) === line).length;
+}
+
+async function featuredProductsInLine(line: CatalogLine) {
+  const featured = await prisma.product.findMany({
+    where: { featured: true },
+    select: {
+      id: true,
+      slug: true,
+      homepageOrder: true,
+      updatedAt: true,
+      createdAt: true,
+      category: { select: categoryLineSelect },
+    },
+    orderBy: [{ homepageOrder: "asc" }, { updatedAt: "desc" }, { createdAt: "asc" }],
+  });
+  return featured.filter((product) => catalogLineFromCategory(product.category) === line);
+}
 
 function stringValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -164,10 +214,11 @@ export async function createProduct(
   try {
     const wantsFeatured = data.featured;
     if (wantsFeatured) {
-      const featuredCount = await prisma.product.count({ where: { featured: true } });
-      if (featuredCount >= MAX_FEATURED) {
+      const line = await resolveCatalogLine(data.categoryId);
+      const featuredCount = await countFeaturedInLine(line);
+      if (featuredCount >= MAX_FEATURED_PER_LINE) {
         return {
-          error: `Already ${MAX_FEATURED} featured products. Remove one from the slots on Products, then try again.`,
+          error: `Already ${MAX_FEATURED_PER_LINE} featured ${line === "NON_REP" ? "NON-REP" : "REP"} products. Remove one from the slots on Products, then try again.`,
         };
       }
     }
@@ -175,7 +226,7 @@ export async function createProduct(
     const product = await prisma.product.create({
       data: {
         ...data,
-        homepageOrder: wantsFeatured ? MAX_FEATURED + 1 : null,
+        homepageOrder: wantsFeatured ? MAX_FEATURED_PER_LINE + 1 : null,
       },
     });
 
@@ -207,12 +258,11 @@ export async function updateProduct(
   try {
     const wantsFeatured = data.featured;
     if (wantsFeatured) {
-      const featuredCount = await prisma.product.count({
-        where: { featured: true, NOT: { id } },
-      });
-      if (featuredCount >= MAX_FEATURED) {
+      const line = await resolveCatalogLine(data.categoryId);
+      const featuredCount = await countFeaturedInLine(line, id);
+      if (featuredCount >= MAX_FEATURED_PER_LINE) {
         return {
-          error: `Already ${MAX_FEATURED} featured products. Remove one from the slots on Products, then try again.`,
+          error: `Already ${MAX_FEATURED_PER_LINE} featured ${line === "NON_REP" ? "NON-REP" : "REP"} products. Remove one from the slots on Products, then try again.`,
         };
       }
     }
@@ -221,7 +271,7 @@ export async function updateProduct(
       where: { id },
       data: {
         ...data,
-        homepageOrder: wantsFeatured ? MAX_FEATURED + 1 : null,
+        homepageOrder: wantsFeatured ? MAX_FEATURED_PER_LINE + 1 : null,
       },
     });
 
@@ -264,52 +314,53 @@ export async function deleteProduct(formData: FormData) {
   redirect("/admin/products");
 }
 
-const MAX_FEATURED = 6;
+const MAX_FEATURED = MAX_FEATURED_PER_LINE;
 
 /**
- * Force featured products into unique slots 1…N (max 6).
- * Drops extras beyond 6. Safe to run on every admin products visit.
+ * Force featured products into unique slots 1…N per catalog line (REP / NON-REP).
+ * Drops extras beyond the per-line max. Safe to run on every admin products visit.
  */
 export async function repairFeaturedSlots() {
-  const featured = await prisma.product.findMany({
-    where: { featured: true },
-    select: { id: true, homepageOrder: true },
-    orderBy: [{ homepageOrder: "asc" }, { updatedAt: "desc" }, { createdAt: "asc" }],
-  });
+  const lines: CatalogLine[] = ["REP", "NON_REP"];
+  let touched = false;
 
-  const keep = featured.slice(0, MAX_FEATURED);
-  const drop = featured.slice(MAX_FEATURED);
-  const alreadyClean =
-    drop.length === 0 &&
-    keep.every((product, index) => product.homepageOrder === index + 1);
+  for (const line of lines) {
+    const featured = await featuredProductsInLine(line);
+    const keep = featured.slice(0, MAX_FEATURED);
+    const drop = featured.slice(MAX_FEATURED);
+    const alreadyClean =
+      drop.length === 0 &&
+      keep.every((product, index) => product.homepageOrder === index + 1);
 
-  if (alreadyClean) return;
+    if (alreadyClean) continue;
+    touched = true;
 
-  await prisma.$transaction([
-    ...drop.map((product) =>
-      prisma.product.update({
-        where: { id: product.id },
-        data: { featured: false, homepageOrder: null },
-      }),
-    ),
-    ...keep.map((product, index) =>
-      prisma.product.update({
-        where: { id: product.id },
-        data: {
-          featured: true,
-          homepageOrder: 1000 + index,
-        },
-      }),
-    ),
-    ...keep.map((product, index) =>
-      prisma.product.update({
-        where: { id: product.id },
-        data: { homepageOrder: index + 1 },
-      }),
-    ),
-  ]);
+    await prisma.$transaction([
+      ...drop.map((product) =>
+        prisma.product.update({
+          where: { id: product.id },
+          data: { featured: false, homepageOrder: null },
+        }),
+      ),
+      ...keep.map((product, index) =>
+        prisma.product.update({
+          where: { id: product.id },
+          data: {
+            featured: true,
+            homepageOrder: 1000 + index,
+          },
+        }),
+      ),
+      ...keep.map((product, index) =>
+        prisma.product.update({
+          where: { id: product.id },
+          data: { homepageOrder: index + 1 },
+        }),
+      ),
+    ]);
+  }
 
-  bustCatalogCache();
+  if (touched) bustCatalogCache();
 }
 
 export async function toggleFeaturedProduct(formData: FormData) {
@@ -320,10 +371,17 @@ export async function toggleFeaturedProduct(formData: FormData) {
 
   const product = await prisma.product.findUnique({
     where: { id },
-    select: { id: true, featured: true, slug: true },
+    select: {
+      id: true,
+      featured: true,
+      slug: true,
+      category: { select: categoryLineSelect },
+    },
   });
 
   if (!product) return;
+
+  const line = catalogLineFromCategory(product.category);
 
   if (product.featured) {
     await prisma.product.update({
@@ -335,9 +393,9 @@ export async function toggleFeaturedProduct(formData: FormData) {
     redirect("/admin/products");
   }
 
-  const featuredCount = await prisma.product.count({ where: { featured: true } });
+  const featuredCount = await countFeaturedInLine(line);
   if (featuredCount >= MAX_FEATURED) {
-    redirect("/admin/products?featuredError=limit");
+    redirect(`/admin/products?featuredError=limit&line=${line}`);
   }
 
   await prisma.product.update({
@@ -357,11 +415,14 @@ export async function moveFeaturedProduct(formData: FormData) {
   const direction = stringValue(formData, "direction");
   if (!id || (direction !== "up" && direction !== "down")) return;
 
-  const featured = await prisma.product.findMany({
-    where: { featured: true },
-    select: { id: true, slug: true },
-    orderBy: [{ homepageOrder: "asc" }, { updatedAt: "desc" }, { createdAt: "asc" }],
+  const current = await prisma.product.findUnique({
+    where: { id },
+    select: { id: true, category: { select: categoryLineSelect } },
   });
+  if (!current) return;
+
+  const line = catalogLineFromCategory(current.category);
+  const featured = await featuredProductsInLine(line);
 
   const index = featured.findIndex((product) => product.id === id);
   if (index < 0) return;
