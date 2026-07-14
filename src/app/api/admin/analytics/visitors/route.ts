@@ -17,8 +17,14 @@ export async function GET() {
   const liveSince = new Date(Date.now() - LIVE_WINDOW_MS);
 
   try {
-    const [totalVisitors, liveVisitors, byCountryRaw, pageViewsToday, liveByCountryRaw] =
-      await Promise.all([
+    const [
+      totalVisitors,
+      liveVisitors,
+      byCountryRaw,
+      pageViewsToday,
+      pageViewsTotal,
+      liveByCountryRaw,
+    ] = await Promise.all([
         prisma.siteVisitor.count(),
         prisma.siteVisitor.count({ where: { lastSeenAt: { gte: liveSince } } }),
         prisma.siteVisitor.groupBy({
@@ -30,6 +36,7 @@ export async function GET() {
             createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
           },
         }),
+        prisma.pageView.count(),
         prisma.siteVisitor.groupBy({
           by: ['country', 'countryName'],
           where: { lastSeenAt: { gte: liveSince } },
@@ -57,6 +64,7 @@ export async function GET() {
       totalVisitors,
       liveVisitors,
       pageViewsToday,
+      pageViewsTotal,
       byCountry,
       liveByCountry,
       liveWindowSeconds: Math.round(LIVE_WINDOW_MS / 1000),
@@ -67,6 +75,7 @@ export async function GET() {
       totalVisitors: 0,
       liveVisitors: 0,
       pageViewsToday: 0,
+      pageViewsTotal: 0,
       byCountry: [],
       liveByCountry: [],
       liveWindowSeconds: Math.round(LIVE_WINDOW_MS / 1000),

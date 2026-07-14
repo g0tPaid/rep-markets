@@ -12,6 +12,7 @@ type VisitorStats = {
   totalVisitors: number;
   liveVisitors: number;
   pageViewsToday: number;
+  pageViewsTotal: number;
   byCountry: CountryRow[];
   liveByCountry: CountryRow[];
   liveWindowSeconds: number;
@@ -21,6 +22,7 @@ const EMPTY: VisitorStats = {
   totalVisitors: 0,
   liveVisitors: 0,
   pageViewsToday: 0,
+  pageViewsTotal: 0,
   byCountry: [],
   liveByCountry: [],
   liveWindowSeconds: 120,
@@ -94,7 +96,7 @@ export function VisitorAnalyticsPanel() {
         <p className="p-5 text-sm text-red-600">{error}</p>
       ) : (
         <>
-          <div className="grid gap-4 border-b border-blue-100 p-5 sm:grid-cols-3">
+          <div className="grid gap-4 border-b border-blue-100 p-5 sm:grid-cols-2 lg:grid-cols-4">
             <div className="border border-blue-100 bg-blue-50/40 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-400">Total visitors</p>
               <p className="mt-2 text-3xl font-semibold text-blue-700">
@@ -111,6 +113,14 @@ export function VisitorAnalyticsPanel() {
               <p className="text-xs uppercase tracking-[0.16em] text-blue-400">Page views today</p>
               <p className="mt-2 text-3xl font-semibold text-blue-700">
                 {stats.pageViewsToday.toLocaleString()}
+              </p>
+            </div>
+            <div className="border border-blue-100 bg-blue-50/40 p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-blue-400">
+                Total website since starting
+              </p>
+              <p className="mt-2 text-3xl font-semibold text-blue-700">
+                {stats.pageViewsTotal.toLocaleString()}
               </p>
             </div>
           </div>
