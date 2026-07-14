@@ -77,6 +77,16 @@ export function priceForQuality(
   return Math.round(basePrice * quality.multiplier * 100) / 100;
 }
 
+/** Storefront grid / search price — always Normal quality (sale override first). */
+export function normalDisplayPrice(product: {
+  price: number;
+  salePrice?: number | null;
+  qualityPrices?: QualityPriceMap | null;
+}) {
+  const base = product.salePrice ?? product.price;
+  return priceForQuality(base, 'NORMAL', product.qualityPrices);
+}
+
 export type StoreProduct = {
   id: string;
   slug: string;
