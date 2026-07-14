@@ -53,9 +53,9 @@ export function parseQualityPrices(value: unknown): QualityPriceMap {
   const prices: QualityPriceMap = {};
 
   for (const option of QUALITY_OPTIONS) {
-    const raw = source[option.id];
+    const raw = source[option.id] ?? source[option.id.toLowerCase()];
     if (raw === null || raw === undefined || raw === '') continue;
-    const parsed = Number(raw);
+    const parsed = Number(typeof raw === 'object' && raw !== null && 'toString' in raw ? String(raw) : raw);
     if (Number.isFinite(parsed)) {
       prices[option.id] = parsed;
     }

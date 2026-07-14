@@ -70,7 +70,11 @@ const listSelect = {
   name: true,
   price: true,
   salePrice: true,
+  qualityPrices: true,
   shortDescription: true,
+  material: true,
+  sizes: true,
+  colors: true,
   tags: true,
   featured: true,
   homepageOrder: true,
@@ -87,10 +91,6 @@ const detailMediaSelect = {
 
 const detailSelect = {
   ...listSelect,
-  qualityPrices: true,
-  material: true,
-  sizes: true,
-  colors: true,
   longDescription: true,
   media: detailMediaSelect,
 } as const;
