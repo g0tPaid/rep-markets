@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState, type ChangeEvent, type DragEvent } from 'react';
+import { ImageCropDialog } from '@/components/admin/image-crop-dialog';
 import { compressImageForUpload } from '@/lib/compress-image';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +19,8 @@ type ProductImageGalleryProps = {
 };
 
 const MAX_BYTES = 8 * 1024 * 1024;
+/** Matches product cards / gallery tiles */
+const PRODUCT_ASPECT = 4 / 5;
 
 function makeKey() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -39,6 +42,7 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
   const [preparing, setPreparing] = useState(false);
+  const [cropping, setCropping] = useState<GalleryItem | null>(null);
 
   useEffect(() => {
     return () => {
@@ -129,6 +133,30 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
     setItems(next);
   }
 
+  async function finishCrop(file: File) {
+    if (!cropping) return;
+    const key = cropping.key;
+    setCropping(null);
+    setPreparing(true);
+    try {
+      const crushed = await compressImageForUpload(file);
+      const preview = URL.createObjectURL(crushed);
+      const cropped = createGalleryItem({ file: crushed, preview });
+      setItems(
+        items.map((item) => {
+          if (item.key !== key) return item;
+          if (item.preview.startsWith('blob:') && item.preview !== preview) {
+            URL.revokeObjectURL(item.preview);
+          }
+          return cropped;
+        }),
+      );
+      setError('');
+    } finally {
+      setPreparing(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -151,7 +179,7 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
           className="sr-only"
         />
         <p className="text-sm text-black/55">
-          {items.length}/{max} · select many at once · first = cover
+          {items.length}/{max} · first = cover · crop only when you tap EDIT
         </p>
       </div>
 
@@ -181,7 +209,8 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
           <span className="font-medium text-black">Choose multiple photos</span>
         </p>
         <p className="mt-1 text-xs text-black/45">
-          On desktop: Ctrl/Cmd + click to pick several files in one go
+          Photos add as-is. Use <span className="font-medium text-black">EDIT · CROP</span> under any
+          picture when you want to crop.
         </p>
       </div>
 
@@ -202,7 +231,14 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
                   </span>
                 ) : null}
               </div>
-              <div className="space-y-2 p-3">
+              <div className="space-y-2 border-t border-black/10 p-3">
+                <button
+                  type="button"
+                  onClick={() => setCropping(item)}
+                  className="w-full bg-black px-3 py-2.5 text-[11px] font-semibold tracking-[0.16em] text-white"
+                >
+                  EDIT · CROP
+                </button>
                 <p className="truncate text-xs text-black/55">
                   {item.file?.name || (item.url ? 'Saved' : `Image ${index + 1}`)}
                 </p>
@@ -244,6 +280,21 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
             </div>
           ))}
         </div>
+      ) : null}
+
+      {cropping ? (
+        <ImageCropDialog
+          open
+          imageSrc={cropping.preview}
+          fileName={cropping.file?.name || 'product.jpg'}
+          aspect={PRODUCT_ASPECT}
+          title="Crop product photo"
+          hint="Frame the product — 4:5 matches the shop cards. Drag to reposition, zoom if needed."
+          onCancel={() => setCropping(null)}
+          onComplete={(file) => {
+            void finishCrop(file);
+          }}
+        />
       ) : null}
     </div>
   );
