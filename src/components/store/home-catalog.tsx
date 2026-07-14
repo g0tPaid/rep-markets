@@ -92,7 +92,6 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
   return (
     <main className="min-h-screen bg-white">
       <Header />
-      <OffersBanner />
       <section className="px-4 pb-3 pt-2">
         <h1 className="text-center font-serif text-[44px] leading-[0.95] tracking-[-0.05em]">
           Anything
@@ -136,6 +135,7 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
         ) : null}
       </section>
       <ViewToggle value={view} onChange={changeView} />
+      <OffersBanner />
       <CategoryNav categories={lineCategories} value={category} onChange={changeCategory} />
       <SearchOverlay products={filterProducts(catalog, 'ALL', view)} />
       <ProductGrid products={products} />
