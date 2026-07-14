@@ -2,7 +2,7 @@
 
 const MESSAGE = (
   <>
-    Resellers contact directly on{' '}
+    RESELLERS DIRECTLY CONTACT ON{' '}
     <a
       href="https://wa.me/8618059262730?text=Hi%20AJ%2C%20I%27m%20a%20reseller"
       target="_blank"
@@ -10,7 +10,7 @@ const MESSAGE = (
       className="font-bold underline underline-offset-2"
       style={{ color: '#25D366' }}
     >
-      WhatsApp
+      WHATSAPP
     </a>
   </>
 );
