@@ -93,11 +93,16 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
     <main className="min-h-screen bg-white">
       <Header />
       <section className="px-4 pb-3 pt-2">
-        <h1 className="text-center font-serif text-[44px] leading-[0.95] tracking-[-0.05em]">
+        <h1 className="text-center font-serif text-[22px] font-bold leading-[1.05] tracking-[-0.03em]">
           Anything
           <br />
           &amp; Everything
         </h1>
+        <p className="mx-auto mt-2 max-w-[360px] text-center text-[10px] font-bold uppercase leading-4 tracking-[0.08em] text-black/80">
+          Warehouse and office in China.
+          <br />
+          Replies between 8:00 AM and 11:00 PM China time.
+        </p>
         {shippingNoticeOpen ? (
           <aside
             role="note"
