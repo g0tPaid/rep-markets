@@ -94,9 +94,7 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
       <Header />
       <section className="px-4 pb-3 pt-2">
         <h1 className="text-center font-serif text-[22px] font-bold leading-[1.05] tracking-[-0.03em]">
-          Anything
-          <br />
-          &amp; Everything
+          Anything &amp; Everything
         </h1>
         <p className="mx-auto mt-2 max-w-[360px] text-center text-[10px] font-bold uppercase leading-4 tracking-[0.08em] text-black/80">
           Warehouse and office in China.
