@@ -22,6 +22,7 @@ type ProductDetailsProps = {
 export function ProductDetails({ product, related }: ProductDetailsProps) {
   const addItem = useCart((state) => state.addItem);
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? 'OS');
+  const [selectedColor, setSelectedColor] = useState(product.colors[0] ?? '');
   const [selectedQuality, setSelectedQuality] = useState<QualityOptionId>('NORMAL');
   const [quantity, setQuantity] = useState(1);
 
@@ -86,7 +87,38 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         </section>
       ) : null}
 
-      <section className={cn('border-hairline px-4 py-5', product.sizes.length ? 'border-b' : 'border-y')}>
+      {product.colors.length ? (
+        <section
+          className={cn(
+            'border-hairline px-4 py-5',
+            product.sizes.length ? 'border-b' : 'border-y',
+          )}
+        >
+          <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">COLOR</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {product.colors.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setSelectedColor(color)}
+                className={cn(
+                  'border px-2 py-3 text-xs font-medium',
+                  selectedColor === color ? 'border-black bg-black text-white' : 'border-hairline',
+                )}
+              >
+                {color}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section
+        className={cn(
+          'border-hairline px-4 py-5',
+          product.sizes.length || product.colors.length ? 'border-b' : 'border-y',
+        )}
+      >
         <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">QUALITY</p>
         <div className="grid grid-cols-1 gap-2">
           {QUALITY_OPTIONS.map((option) => {
@@ -135,7 +167,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
               price: unitPrice,
               imageUrl: product.images[0],
               size: selectedSize,
-              color: product.colors[0],
+              color: selectedColor || product.colors[0],
               quality: selectedQuality,
               qualityLabel: quality.label,
               quantity,

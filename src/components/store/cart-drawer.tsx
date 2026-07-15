@@ -72,7 +72,13 @@ export function CartDrawer() {
                               type="button"
                               className="size-8 text-sm"
                               onClick={() =>
-                                setQuantity(item.productId, item.quantity - 1, item.size, item.quality)
+                                setQuantity(
+                                  item.productId,
+                                  item.quantity - 1,
+                                  item.size,
+                                  item.quality,
+                                  item.color,
+                                )
                               }
                               aria-label={`Decrease ${item.name} quantity`}
                             >
@@ -83,7 +89,13 @@ export function CartDrawer() {
                               type="button"
                               className="size-8 text-sm"
                               onClick={() =>
-                                setQuantity(item.productId, item.quantity + 1, item.size, item.quality)
+                                setQuantity(
+                                  item.productId,
+                                  item.quantity + 1,
+                                  item.size,
+                                  item.quality,
+                                  item.color,
+                                )
                               }
                               aria-label={`Increase ${item.name} quantity`}
                             >
@@ -92,7 +104,9 @@ export function CartDrawer() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => removeItem(item.productId, item.size, item.quality)}
+                            onClick={() =>
+                              removeItem(item.productId, item.size, item.quality, item.color)
+                            }
                             className="text-[10px] font-medium tracking-[0.16em] text-muted"
                           >
                             REMOVE
