@@ -99,7 +99,9 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
         <p className="mx-auto mt-2 max-w-[360px] text-center text-[10px] font-bold uppercase leading-4 tracking-[0.08em] text-black/80">
           Warehouse and office in China.
           <br />
-          Replies between 8:00 AM and 11:00 PM China time.
+          Replies between{' '}
+          <span className="font-bold text-red-600">8:00 AM</span> and{' '}
+          <span className="font-bold text-red-600">11:00 PM</span> China time.
         </p>
         {shippingNoticeOpen ? (
           <aside
