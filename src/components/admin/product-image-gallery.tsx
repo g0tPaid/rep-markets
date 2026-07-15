@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState, type ChangeEvent, type DragEvent } from 'react';
 import { ImageCropDialog } from '@/components/admin/image-crop-dialog';
-import { compressImageForUpload } from '@/lib/compress-image';
+import { compressImageForUpload, rotateImageClockwise } from '@/lib/compress-image';
 import { cn } from '@/lib/utils';
 
 export type GalleryItem = {
@@ -157,6 +157,40 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
     }
   }
 
+  async function rotateAt(index: number) {
+    const target = items[index];
+    if (!target || preparing) return;
+    setPreparing(true);
+    setError('');
+    try {
+      const source = target.file || target.preview || target.url;
+      if (!source) {
+        setError('No image to rotate.');
+        return;
+      }
+      const rotated = await rotateImageClockwise(
+        source,
+        target.file?.name || `product-${index + 1}.jpg`,
+      );
+      const crushed = await compressImageForUpload(rotated);
+      const preview = URL.createObjectURL(crushed);
+      const nextItem = createGalleryItem({ file: crushed, preview });
+      setItems(
+        items.map((item, i) => {
+          if (i !== index) return item;
+          if (item.preview.startsWith('blob:') && item.preview !== preview) {
+            URL.revokeObjectURL(item.preview);
+          }
+          return nextItem;
+        }),
+      );
+    } catch {
+      setError('Could not rotate that image. Try again.');
+    } finally {
+      setPreparing(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -179,7 +213,7 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
           className="sr-only"
         />
         <p className="text-sm text-black/55">
-          {items.length}/{max} · first = cover · crop only when you tap EDIT
+          {items.length}/{max} · first = cover · crop / rotate under each photo
         </p>
       </div>
 
@@ -209,8 +243,8 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
           <span className="font-medium text-black">Choose multiple photos</span>
         </p>
         <p className="mt-1 text-xs text-black/45">
-          Photos add as-is. Use <span className="font-medium text-black">EDIT · CROP</span> under any
-          picture when you want to crop.
+          Photos add as-is. Use <span className="font-medium text-black">EDIT · CROP</span> or{' '}
+          <span className="font-medium text-black">ROTATE</span> under any picture when needed.
         </p>
       </div>
 
@@ -232,13 +266,24 @@ export function ProductImageGallery({ items, onChange, max = 15 }: ProductImageG
                 ) : null}
               </div>
               <div className="space-y-2 border-t border-black/10 p-3">
-                <button
-                  type="button"
-                  onClick={() => setCropping(item)}
-                  className="w-full bg-black px-3 py-2.5 text-[11px] font-semibold tracking-[0.16em] text-white"
-                >
-                  EDIT · CROP
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCropping(item)}
+                    disabled={preparing}
+                    className="bg-black px-2 py-2.5 text-[11px] font-semibold tracking-[0.14em] text-white disabled:opacity-50"
+                  >
+                    EDIT · CROP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void rotateAt(index)}
+                    disabled={preparing}
+                    className="border border-black bg-white px-2 py-2.5 text-[11px] font-semibold tracking-[0.14em] disabled:opacity-50"
+                  >
+                    ROTATE
+                  </button>
+                </div>
                 <p className="truncate text-xs text-black/55">
                   {item.file?.name || (item.url ? 'Saved' : `Image ${index + 1}`)}
                 </p>
