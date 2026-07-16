@@ -14,7 +14,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const now = new Date();
   const liveSince = new Date(Date.now() - LIVE_WINDOW_MS);
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(todayStart.getDate() - 1);
 
   try {
     const [
@@ -22,7 +27,10 @@ export async function GET() {
       liveVisitors,
       byCountryRaw,
       pageViewsToday,
+      pageViewsYesterday,
       pageViewsTotal,
+      uniqueVisitorsToday,
+      uniqueVisitorsYesterday,
       liveByCountryRaw,
     ] = await Promise.all([
         prisma.siteVisitor.count(),
@@ -33,10 +41,21 @@ export async function GET() {
         }),
         prisma.pageView.count({
           where: {
-            createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+            createdAt: { gte: todayStart },
+          },
+        }),
+        prisma.pageView.count({
+          where: {
+            createdAt: { gte: yesterdayStart, lt: todayStart },
           },
         }),
         prisma.pageView.count(),
+        prisma.siteVisitor.count({
+          where: { lastSeenAt: { gte: todayStart } },
+        }),
+        prisma.siteVisitor.count({
+          where: { lastSeenAt: { gte: yesterdayStart, lt: todayStart } },
+        }),
         prisma.siteVisitor.groupBy({
           by: ['country', 'countryName'],
           where: { lastSeenAt: { gte: liveSince } },
@@ -64,7 +83,10 @@ export async function GET() {
       totalVisitors,
       liveVisitors,
       pageViewsToday,
+      pageViewsYesterday,
       pageViewsTotal,
+      uniqueVisitorsToday,
+      uniqueVisitorsYesterday,
       byCountry,
       liveByCountry,
       liveWindowSeconds: Math.round(LIVE_WINDOW_MS / 1000),
@@ -75,7 +97,10 @@ export async function GET() {
       totalVisitors: 0,
       liveVisitors: 0,
       pageViewsToday: 0,
+      pageViewsYesterday: 0,
       pageViewsTotal: 0,
+      uniqueVisitorsToday: 0,
+      uniqueVisitorsYesterday: 0,
       byCountry: [],
       liveByCountry: [],
       liveWindowSeconds: Math.round(LIVE_WINDOW_MS / 1000),

@@ -12,7 +12,10 @@ type VisitorStats = {
   totalVisitors: number;
   liveVisitors: number;
   pageViewsToday: number;
+  pageViewsYesterday: number;
   pageViewsTotal: number;
+  uniqueVisitorsToday: number;
+  uniqueVisitorsYesterday: number;
   byCountry: CountryRow[];
   liveByCountry: CountryRow[];
   liveWindowSeconds: number;
@@ -22,11 +25,42 @@ const EMPTY: VisitorStats = {
   totalVisitors: 0,
   liveVisitors: 0,
   pageViewsToday: 0,
+  pageViewsYesterday: 0,
   pageViewsTotal: 0,
+  uniqueVisitorsToday: 0,
+  uniqueVisitorsYesterday: 0,
   byCountry: [],
   liveByCountry: [],
   liveWindowSeconds: 120,
 };
+
+function growthPct(now: number, prev: number): number | null {
+  if (!Number.isFinite(now) || !Number.isFinite(prev)) return null;
+  if (prev <= 0) return null;
+  return ((now - prev) / prev) * 100;
+}
+
+function GrowthPill({ pct }: { pct: number | null }) {
+  if (pct == null) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+        new
+      </span>
+    );
+  }
+  const positive = pct >= 0;
+  const abs = Math.abs(pct);
+  return (
+    <span
+      className={[
+        'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold',
+        positive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700',
+      ].join(' ')}
+    >
+      {positive ? '▲' : '▼'} {abs.toFixed(0)}%
+    </span>
+  );
+}
 
 export function VisitorAnalyticsPanel() {
   const [stats, setStats] = useState<VisitorStats>(EMPTY);
@@ -69,6 +103,8 @@ export function VisitorAnalyticsPanel() {
   }, []);
 
   const maxCountry = Math.max(1, ...stats.byCountry.map((row) => row.visitors));
+  const activeVisitorsGrowth = growthPct(stats.uniqueVisitorsToday, stats.uniqueVisitorsYesterday);
+  const pageViewsGrowth = growthPct(stats.pageViewsToday, stats.pageViewsYesterday);
 
   return (
     <section className="border border-blue-200 bg-white">
@@ -79,6 +115,12 @@ export function VisitorAnalyticsPanel() {
             Unique browsers · country from edge headers · live = active in last{' '}
             {Math.round(stats.liveWindowSeconds / 60) || 2} min
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-blue-700">
+              Active today: {stats.uniqueVisitorsToday.toLocaleString()}
+            </span>
+            <GrowthPill pct={activeVisitorsGrowth} />
+          </div>
         </div>
         <div className="flex items-center gap-2 text-sm text-blue-500">
           <span className="relative flex size-2.5">
@@ -114,6 +156,14 @@ export function VisitorAnalyticsPanel() {
               <p className="mt-2 text-3xl font-semibold text-blue-700">
                 {stats.pageViewsToday.toLocaleString()}
               </p>
+              <div className="mt-2 flex items-center gap-2">
+                <p className="text-[11px] font-semibold text-blue-600">
+                  {stats.pageViewsYesterday > 0
+                    ? `vs yesterday (${stats.pageViewsYesterday.toLocaleString()})`
+                    : 'first day detected'}
+                </p>
+                <GrowthPill pct={pageViewsGrowth} />
+              </div>
             </div>
             <div className="border border-blue-100 bg-blue-50/40 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-400">
