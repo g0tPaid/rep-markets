@@ -125,6 +125,8 @@ export type StoreProduct = {
   category: string;
   /** Admin category slug — used for homepage filter pills */
   categorySlug?: string;
+  brand?: string | null;
+  brandLogoUrl?: string | null;
   description: string;
   material: string;
   sizes: string[];
@@ -165,6 +167,8 @@ export type PrismaProductShape = {
   qualityPrices?: unknown;
   shortDescription?: string | null;
   longDescription?: string | null;
+  brand?: string | null;
+  brandLogoUrl?: string | null;
   material?: string | null;
   sizes?: string[] | null;
   colors?: string[] | null;
@@ -246,6 +250,8 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     line: toCatalogLine(product.category),
     category: categoryLabel,
     categorySlug: toCategorySlug(product.category, categoryLabel),
+    brand: product.brand?.trim() || null,
+    brandLogoUrl: product.brandLogoUrl?.trim() || null,
     description:
       product.longDescription ||
       product.shortDescription ||

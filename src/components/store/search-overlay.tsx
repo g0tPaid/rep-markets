@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Search, X } from 'lucide-react';
 import type { StoreProduct } from '@/lib/products';
 import { formatQualityPriceRange } from '@/lib/products';
+import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 
 type SearchOverlayProps = {
   products: StoreProduct[];
@@ -84,6 +85,13 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
                         />
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-medium uppercase tracking-[0.12em]">{product.name}</span>
+                          <VendorBrandBadge
+                            brand={product.brand}
+                            brandLogoUrl={product.brandLogoUrl}
+                            className="mt-1 justify-start"
+                            logoClassName="size-4"
+                            showName={false}
+                          />
                           <span className="mt-1 block text-xs text-muted">{product.category}</span>
                         </span>
                         <span className="shrink-0 text-right text-[10px] leading-tight">

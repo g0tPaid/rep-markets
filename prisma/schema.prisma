@@ -126,7 +126,8 @@ model Product {
   shortDescription String?
   longDescription  String?       
   brand            String?
-  price            Float       
+  brandLogoUrl     String?
+  price            Float
   salePrice        Float?
   /// Per-quality prices: { NORMAL, GOOD, HIGH, ONE_TO_ONE, MIRROR }
   qualityPrices    Json         @default("{}")

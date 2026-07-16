@@ -20,6 +20,8 @@ type CatalogRow = {
   qualityPrices?: unknown;
   shortDescription: string | null;
   longDescription?: string | null;
+  brand?: string | null;
+  brandLogoUrl?: string | null;
   material?: string | null;
   sizes?: unknown;
   colors?: unknown;
@@ -78,6 +80,8 @@ const listSelect = {
   salePrice: true,
   qualityPrices: true,
   shortDescription: true,
+  brand: true,
+  brandLogoUrl: true,
   material: true,
   sizes: true,
   colors: true,

@@ -31,6 +31,7 @@ type ProductForForm = {
   shortDescription: string | null;
   longDescription: string | null;
   brand: string | null;
+  brandLogoUrl?: string | null;
   price: unknown;
   salePrice: unknown | null;
   qualityPrices?: Partial<Record<string, number | null>> | null;
@@ -390,15 +391,42 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           />
         </div>
 
-        <div>
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium" htmlFor="brand">
-            Brand
+            Brand / vendor
           </label>
           <input
             id="brand"
             name="brand"
             defaultValue={product?.brand ?? 'rep.markets'}
             className="mt-2 w-full border border-black/15 px-3 py-2 outline-none focus:border-black"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium" htmlFor="brandLogo">
+            Brand logo
+          </label>
+          <p className="mt-1 text-xs text-black/55">
+            Small square logo shown under each product on the shop. PNG or JPG, ideally 128×128 px.
+          </p>
+          {product?.brandLogoUrl ? (
+            <div className="mt-3 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={product.brandLogoUrl}
+                alt="Current brand logo"
+                className="size-12 rounded-full border border-black/10 bg-white object-contain p-1"
+              />
+              <input type="hidden" name="existingBrandLogoUrl" value={product.brandLogoUrl} />
+            </div>
+          ) : null}
+          <input
+            id="brandLogo"
+            name="brandLogo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="mt-3 block w-full text-sm text-black/70 file:mr-3 file:border file:border-black file:bg-black file:px-3 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-[0.12em] file:text-white"
           />
         </div>
 

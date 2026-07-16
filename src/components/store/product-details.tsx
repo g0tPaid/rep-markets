@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Header } from '@/components/store/header';
 import { ProductCard } from '@/components/store/product-card';
+import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 import {
   getQualityOption,
   priceForQuality,
@@ -56,6 +57,13 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           {product.line === 'NON_REP' ? 'NON-REP' : 'REP'} · {product.category}
         </p>
         <h1 className="font-serif text-5xl leading-[0.92] tracking-[-0.06em]">{product.name}</h1>
+        <VendorBrandBadge
+          brand={product.brand}
+          brandLogoUrl={product.brandLogoUrl}
+          className="mt-3 justify-start"
+          logoClassName="size-7"
+          showName
+        />
         <p className="mt-4 text-sm font-medium text-red-600">{formatPrice(unitPrice)}</p>
         {selectedQuality !== 'NORMAL' ? (
           <p className="mt-1 text-xs text-muted">

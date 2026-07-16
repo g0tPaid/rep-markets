@@ -223,9 +223,12 @@ export async function createProduct(
       }
     }
 
+    const brandLogoUrl = await resolveImageUrl(formData, "brandLogo", "existingBrandLogoUrl");
+
     const product = await prisma.product.create({
       data: {
         ...data,
+        brandLogoUrl: brandLogoUrl || null,
         homepageOrder: wantsFeatured ? MAX_FEATURED_PER_LINE + 1 : null,
       },
     });
@@ -267,10 +270,13 @@ export async function updateProduct(
       }
     }
 
+    const brandLogoUrl = await resolveImageUrl(formData, "brandLogo", "existingBrandLogoUrl");
+
     await prisma.product.update({
       where: { id },
       data: {
         ...data,
+        brandLogoUrl: brandLogoUrl || null,
         homepageOrder: wantsFeatured ? MAX_FEATURED_PER_LINE + 1 : null,
       },
     });
