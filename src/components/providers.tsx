@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { CartDrawer } from '@/components/store/cart-drawer';
 import { SiteShell } from '@/components/store/site-shell';
 import { VisitorBeacon } from '@/components/store/visitor-beacon';
+import { WhatsAppOrderButton } from '@/components/store/whatsapp-order-button';
 
 export function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -20,10 +21,13 @@ export function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SiteShell>
-      <VisitorBeacon />
-      {children}
-      <CartDrawer />
-    </SiteShell>
+    <>
+      <SiteShell>
+        <VisitorBeacon />
+        {children}
+        <CartDrawer />
+      </SiteShell>
+      {pathname === '/' ? <WhatsAppOrderButton /> : null}
+    </>
   );
 }
