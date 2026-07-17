@@ -24,7 +24,7 @@ export function Header() {
         CART ({mounted ? count : 0})
       </button>
       <Link href="/" className="text-center font-serif text-[24px] leading-none tracking-[-0.03em]" aria-label="rep.markets home">
-        rep.markets
+        www.rep.markets
       </Link>
       <Link href="/checkout" className="text-right text-[11px] font-medium tracking-[0.22em]">
         CHECKOUT
