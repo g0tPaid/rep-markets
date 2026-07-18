@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, X } from 'lucide-react';
 import type { StoreProduct } from '@/lib/products';
-import { formatQualityPriceRange } from '@/lib/products';
+import { QualityPriceRange } from '@/components/store/quality-price-range';
 import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 
 type SearchOverlayProps = {
@@ -94,8 +94,13 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
                           />
                           <span className="mt-1 block text-xs text-muted">{product.category}</span>
                         </span>
-                        <span className="shrink-0 text-right text-[10px] leading-tight">
-                          {formatQualityPriceRange(product)}
+                        <span className="shrink-0 text-right leading-tight text-emerald-700">
+                          <QualityPriceRange
+                            product={product}
+                            className="justify-end"
+                            normalClassName="text-sm font-semibold"
+                            highClassName="text-[10px] font-medium text-muted"
+                          />
                         </span>
                       </Link>
                     ))}

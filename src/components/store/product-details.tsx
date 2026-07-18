@@ -64,12 +64,19 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           logoClassName="size-7"
           showName
         />
-        <p className="mt-4 text-sm font-medium text-red-600">{formatPrice(unitPrice)}</p>
-        {selectedQuality !== 'NORMAL' ? (
-          <p className="mt-1 text-xs text-muted">
-            Base {formatPrice(basePrice)} · {quality.label}
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p className="text-2xl font-semibold tracking-tight text-red-600">
+            {formatPrice(basePrice)}
           </p>
-        ) : null}
+          {selectedQuality !== 'NORMAL' ? (
+            <p className="text-xs font-medium text-muted">
+              <span className="text-[10px] uppercase tracking-[0.12em]">Selected · {quality.label}</span>{' '}
+              <span className="text-sm text-black/70">{formatPrice(unitPrice)}</span>
+            </p>
+          ) : (
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">Normal quality</p>
+          )}
+        </div>
         <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>
         <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted">Material: {product.material}</p>
       </section>
@@ -143,7 +150,20 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
                 )}
               >
                 <span className="text-sm font-medium">{option.label}</span>
-                <span className={cn('text-xs', selected ? 'text-white/80' : 'text-muted')}>
+                <span
+                  className={cn(
+                    option.id === 'NORMAL'
+                      ? 'text-base font-semibold'
+                      : 'text-xs font-medium',
+                    selected
+                      ? option.id === 'NORMAL'
+                        ? 'text-white'
+                        : 'text-white/70'
+                      : option.id === 'NORMAL'
+                        ? 'text-emerald-700'
+                        : 'text-muted',
+                  )}
+                >
                   {formatPrice(optionPrice)}
                 </span>
               </button>

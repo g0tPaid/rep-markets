@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import type { StoreProduct } from '@/lib/products';
-import { formatQualityPriceRange } from '@/lib/products';
+import { QualityPriceRange } from '@/components/store/quality-price-range';
 import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 import { useWishlist } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -64,8 +64,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           className="mt-1"
           showName={Boolean(product.brand)}
         />
-        <p className="mt-0.5 text-center text-[10px] font-medium leading-tight text-emerald-600">
-          {formatQualityPriceRange(product)}
+        <p className="mt-0.5 text-center leading-tight text-emerald-600">
+          <QualityPriceRange product={product} />
         </p>
       </Link>
     </article>
