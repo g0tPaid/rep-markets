@@ -127,8 +127,7 @@ function productData(formData: FormData) {
     price: numberValue(formData, "price"),
     salePrice: optionalNumber(formData, "salePrice"),
     qualityPrices: {
-      // Normal always comes from price / salePrice — never store a Normal override.
-      NORMAL: null,
+      NORMAL: optionalNumber(formData, "qualityPriceNORMAL"),
       GOOD: optionalNumber(formData, "qualityPriceGOOD"),
       HIGH: optionalNumber(formData, "qualityPriceHIGH"),
       ONE_TO_ONE: optionalNumber(formData, "qualityPriceONE_TO_ONE"),

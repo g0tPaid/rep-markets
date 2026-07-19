@@ -499,9 +499,6 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           <label className="block text-sm font-medium" htmlFor="price">
             Price
           </label>
-          <p className="mt-1 text-xs text-black/50">
-            This is the red Normal price on the product page (unless a sale price is set below).
-          </p>
           <input
             id="price"
             name="price"
@@ -518,9 +515,6 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           <label className="block text-sm font-medium" htmlFor="salePrice">
             Sale price
           </label>
-          <p className="mt-1 text-xs text-black/50">
-            If set, this replaces Price as the storefront Normal price.
-          </p>
           <input
             id="salePrice"
             name="salePrice"
@@ -533,12 +527,12 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         </div>
 
         <div className="md:col-span-3">
-          <p className="text-sm font-medium">Higher-tier quality prices</p>
+          <p className="text-sm font-medium">Quality prices</p>
           <p className="mt-1 text-xs text-black/50">
-            Normal always uses Price / Sale price above. Leave tiers blank to use automatic markup from that base.
+            Leave blank to use automatic markup from the base price. Fill any tier to override.
           </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {QUALITY_OPTIONS.filter((option) => option.id !== 'NORMAL').map((option) => (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {QUALITY_OPTIONS.map((option) => (
               <div key={option.id}>
                 <label className="block text-xs font-medium text-black/70" htmlFor={`qualityPrice${option.id}`}>
                   {option.label}
@@ -549,7 +543,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder={`~${option.multiplier}x base`}
+                  placeholder={option.multiplier === 1 ? 'Same as base' : `~${option.multiplier}x base`}
                   defaultValue={fieldValue(product?.qualityPrices?.[option.id])}
                   className="mt-2 w-full border border-black/15 px-3 py-2 outline-none focus:border-black"
                 />

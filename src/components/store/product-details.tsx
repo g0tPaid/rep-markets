@@ -66,9 +66,16 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         />
         <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <p className="text-2xl font-semibold tracking-tight text-red-600">
-            {formatPrice(unitPrice)}
+            {formatPrice(basePrice)}
           </p>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted">{quality.label}</p>
+          {selectedQuality !== 'NORMAL' ? (
+            <p className="text-xs font-medium text-muted">
+              <span className="text-[10px] uppercase tracking-[0.12em]">Selected · {quality.label}</span>{' '}
+              <span className="text-sm text-black/70">{formatPrice(unitPrice)}</span>
+            </p>
+          ) : (
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">Normal quality</p>
+          )}
         </div>
         <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>
         <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted">Material: {product.material}</p>
