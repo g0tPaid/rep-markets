@@ -65,7 +65,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           showName={Boolean(product.brand)}
         />
         <p className="mt-0.5 text-center leading-tight text-emerald-600">
-          <QualityPriceRange product={product} />
+          <QualityPriceRange product={product} showFrom={false} />
         </p>
       </Link>
     </article>

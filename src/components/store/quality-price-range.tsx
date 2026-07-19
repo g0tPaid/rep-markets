@@ -13,18 +13,18 @@ type QualityPriceRangeProps = {
   /** Smaller size for high-tier price */
   highClassName?: string;
   separatorClassName?: string;
-  /** Show "From" above the range (default true) */
+  /** Show "From" above the range (product page only) */
   showFrom?: boolean;
 };
 
-/** Lowest → highest quality tier prices; "From" sits above. */
+/** Lowest → highest quality tier prices. */
 export function QualityPriceRange({
   product,
   className,
   normalClassName = 'text-sm font-semibold',
   highClassName = 'text-[10px] font-medium opacity-70',
   separatorClassName = 'text-[10px] opacity-50',
-  showFrom = true,
+  showFrom = false,
 }: QualityPriceRangeProps) {
   const { low, high } = qualityPriceRange(product);
   const same = Math.abs(high - low) < 0.01;
