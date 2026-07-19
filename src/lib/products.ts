@@ -70,6 +70,10 @@ export function priceForQuality(
   qualityPrices?: QualityPriceMap | null,
 ) {
   const quality = getQualityOption(qualityId);
+  // Normal always follows Sale price ?? Price from admin (ignore outdated Normal overrides).
+  if (quality.id === 'NORMAL') {
+    return Math.round(basePrice * 100) / 100;
+  }
   const custom = qualityPrices?.[quality.id];
   if (typeof custom === 'number' && Number.isFinite(custom)) {
     return Math.round(custom * 100) / 100;

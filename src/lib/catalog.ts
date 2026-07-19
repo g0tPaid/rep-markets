@@ -170,34 +170,29 @@ export async function getProductPageData(slug: string): Promise<{
   product: StoreProduct;
   related: StoreProduct[];
 } | null> {
-  return unstable_cache(
-    async () => {
-      const product = (await prisma.product.findFirst({
-        where: { slug, status: ProductStatus.ACTIVE },
-        select: detailSelect,
-      } as never)) as unknown as CatalogRow | null;
+  // Fresh read so admin price edits show immediately on the product page.
+  const product = (await prisma.product.findFirst({
+    where: { slug, status: ProductStatus.ACTIVE },
+    select: detailSelect,
+  } as never)) as unknown as CatalogRow | null;
 
-      if (!product) return null;
+  if (!product) return null;
 
-      const relatedRows = (await prisma.product.findMany({
-        where: {
-          status: ProductStatus.ACTIVE,
-          id: { not: product.id },
-          ...(product.categoryId ? { categoryId: product.categoryId } : {}),
-        },
-        select: listSelect,
-        orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-        take: 3,
-      } as never)) as unknown as CatalogRow[];
-
-      return {
-        product: normalizeProduct(product),
-        related: relatedRows.map(normalizeProduct),
-      };
+  const relatedRows = (await prisma.product.findMany({
+    where: {
+      status: ProductStatus.ACTIVE,
+      id: { not: product.id },
+      ...(product.categoryId ? { categoryId: product.categoryId } : {}),
     },
-    ['product-page', slug],
-    { revalidate: 30, tags: [CATALOG_CACHE_TAG] },
-  )();
+    select: listSelect,
+    orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+    take: 3,
+  } as never)) as unknown as CatalogRow[];
+
+  return {
+    product: normalizeProduct(product),
+    related: relatedRows.map(normalizeProduct),
+  };
 }
 
 export async function getRelatedProducts(
