@@ -252,10 +252,12 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     categorySlug: toCategorySlug(product.category, categoryLabel),
     brand: product.brand?.trim() || null,
     brandLogoUrl: product.brandLogoUrl?.trim() || null,
-    description:
-      product.longDescription ||
-      product.shortDescription ||
-      'A restrained daily piece from rep.markets, designed for repeated wear and quiet utility.',
+    description: (() => {
+      const raw = (product.longDescription || product.shortDescription || '').trim();
+      if (!raw) return '';
+      if (/restrained daily piece from rep\.markets/i.test(raw)) return '';
+      return raw;
+    })(),
     material: (() => {
       const raw = product.material?.trim() || '';
       if (!raw) return '';

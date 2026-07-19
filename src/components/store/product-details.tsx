@@ -8,7 +8,6 @@ import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 import {
   getQualityOption,
   priceForQuality,
-  qualityPriceRange,
   QUALITY_OPTIONS,
   type QualityOptionId,
   type StoreProduct,
@@ -35,7 +34,12 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
   const basePrice = product.salePrice ?? product.price;
   const quality = getQualityOption(selectedQuality);
   const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
-  const lowestPrice = qualityPriceRange(product).low;
+  // Always the cheapest tier (normally Normal / custom Normal override).
+  const lowestPrice = Math.min(
+    ...QUALITY_OPTIONS.map((option) =>
+      priceForQuality(basePrice, option.id, product.qualityPrices),
+    ),
+  );
 
   return (
     <main className="min-h-screen bg-white">
@@ -76,7 +80,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
               <span className="text-sm text-black/70">{formatPrice(unitPrice)}</span>
             </p>
           ) : (
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">From</p>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">Lowest</p>
           )}
         </div>
         {product.description ? (
