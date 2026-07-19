@@ -7,6 +7,7 @@ import { ProductCard } from '@/components/store/product-card';
 import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 import {
   getQualityOption,
+  normalDisplayPrice,
   priceForQuality,
   QUALITY_OPTIONS,
   type QualityOptionId,
@@ -33,6 +34,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
   );
   const basePrice = product.salePrice ?? product.price;
   const quality = getQualityOption(selectedQuality);
+  const normalPrice = normalDisplayPrice(product);
   const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
 
   return (
@@ -66,9 +68,15 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         />
         <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <p className="text-2xl font-semibold tracking-tight text-red-600">
-            {formatPrice(unitPrice)}
+            {formatPrice(normalPrice)}
           </p>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted">{quality.label}</p>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-muted">Normal quality</p>
+          {selectedQuality !== 'NORMAL' ? (
+            <p className="w-full text-xs text-muted">
+              <span className="uppercase tracking-[0.12em]">Selected · {quality.label}</span>{' '}
+              <span className="font-medium text-black/70">{formatPrice(unitPrice)}</span>
+            </p>
+          ) : null}
         </div>
         <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>
         <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted">Material: {product.material}</p>
