@@ -256,7 +256,12 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
       product.longDescription ||
       product.shortDescription ||
       'A restrained daily piece from rep.markets, designed for repeated wear and quiet utility.',
-    material: product.material || 'Cotton blend',
+    material: (() => {
+      const raw = product.material?.trim() || '';
+      if (!raw) return '';
+      if (/^cotton blend$/i.test(raw)) return '';
+      return raw;
+    })(),
     sizes: Array.isArray(product.sizes) ? (product.sizes as string[]) : [],
     colors: product.colors?.length ? product.colors : ['Black', 'Natural'],
     tags: product.tags ?? [],

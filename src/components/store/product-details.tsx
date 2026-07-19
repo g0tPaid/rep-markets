@@ -8,6 +8,7 @@ import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 import {
   getQualityOption,
   priceForQuality,
+  qualityPriceRange,
   QUALITY_OPTIONS,
   type QualityOptionId,
   type StoreProduct,
@@ -34,6 +35,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
   const basePrice = product.salePrice ?? product.price;
   const quality = getQualityOption(selectedQuality);
   const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
+  const lowestPrice = qualityPriceRange(product).low;
 
   return (
     <main className="min-h-screen bg-white">
@@ -66,19 +68,23 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         />
         <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <p className="text-2xl font-semibold tracking-tight text-red-600">
-            {formatPrice(basePrice)}
+            {formatPrice(lowestPrice)}
           </p>
-          {selectedQuality !== 'NORMAL' ? (
+          {selectedQuality !== 'NORMAL' && Math.abs(unitPrice - lowestPrice) > 0.01 ? (
             <p className="text-xs font-medium text-muted">
               <span className="text-[10px] uppercase tracking-[0.12em]">Selected · {quality.label}</span>{' '}
               <span className="text-sm text-black/70">{formatPrice(unitPrice)}</span>
             </p>
           ) : (
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">Normal quality</p>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">From</p>
           )}
         </div>
-        <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>
-        <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted">Material: {product.material}</p>
+        {product.description ? (
+          <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>
+        ) : null}
+        {product.material ? (
+          <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted">Material: {product.material}</p>
+        ) : null}
       </section>
 
       {product.sizes.length ? (
