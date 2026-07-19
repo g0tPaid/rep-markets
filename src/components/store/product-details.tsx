@@ -34,12 +34,12 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
   const basePrice = product.salePrice ?? product.price;
   const quality = getQualityOption(selectedQuality);
   const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
-  // Always the cheapest tier (normally Normal / custom Normal override).
-  const lowestPrice = Math.min(
-    ...QUALITY_OPTIONS.map((option) =>
-      priceForQuality(basePrice, option.id, product.qualityPrices),
-    ),
+  const tierPrices = QUALITY_OPTIONS.map((option) =>
+    priceForQuality(basePrice, option.id, product.qualityPrices),
   );
+  const lowestPrice = Math.min(...tierPrices);
+  const highestPrice = Math.max(...tierPrices);
+  const hasPriceRange = Math.abs(highestPrice - lowestPrice) > 0.01;
 
   return (
     <main className="min-h-screen bg-white">
@@ -70,18 +70,29 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           logoClassName="size-7"
           showName
         />
-        <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <p className="text-2xl font-semibold tracking-tight text-red-600">
-            {formatPrice(lowestPrice)}
-          </p>
+        <div className="mt-4">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-muted">From</p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="text-2xl font-semibold tracking-tight text-red-600">
+              {formatPrice(lowestPrice)}
+            </p>
+            {hasPriceRange ? (
+              <>
+                <span className="text-base font-medium text-muted" aria-hidden>
+                  –
+                </span>
+                <p className="text-lg font-medium tracking-tight text-black/55">
+                  {formatPrice(highestPrice)}
+                </p>
+              </>
+            ) : null}
+          </div>
           {selectedQuality !== 'NORMAL' && Math.abs(unitPrice - lowestPrice) > 0.01 ? (
-            <p className="text-xs font-medium text-muted">
+            <p className="mt-1.5 text-xs font-medium text-muted">
               <span className="text-[10px] uppercase tracking-[0.12em]">Selected · {quality.label}</span>{' '}
               <span className="text-sm text-black/70">{formatPrice(unitPrice)}</span>
             </p>
-          ) : (
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">Lowest</p>
-          )}
+          ) : null}
         </div>
         {product.description ? (
           <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>

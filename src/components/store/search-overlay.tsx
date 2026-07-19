@@ -97,7 +97,7 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
                         <span className="shrink-0 text-right leading-tight text-emerald-700">
                           <QualityPriceRange
                             product={product}
-                            className="justify-end"
+                            className="items-end"
                             normalClassName="text-sm font-semibold"
                             highClassName="text-[10px] font-medium text-muted"
                           />

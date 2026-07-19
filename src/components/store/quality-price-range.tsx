@@ -13,34 +13,40 @@ type QualityPriceRangeProps = {
   /** Smaller size for high-tier price */
   highClassName?: string;
   separatorClassName?: string;
+  /** Show "From" above the range (default true) */
+  showFrom?: boolean;
 };
 
-/** Normal (low) price is emphasized; high-tier price stays smaller. */
+/** Lowest → highest quality tier prices; "From" sits above. */
 export function QualityPriceRange({
   product,
   className,
   normalClassName = 'text-sm font-semibold',
   highClassName = 'text-[10px] font-medium opacity-70',
   separatorClassName = 'text-[10px] opacity-50',
+  showFrom = true,
 }: QualityPriceRangeProps) {
   const { low, high } = qualityPriceRange(product);
   const same = Math.abs(high - low) < 0.01;
 
-  if (same) {
-    return (
-      <span className={cn('inline-flex items-baseline justify-center gap-1', className)}>
-        <span className={normalClassName}>{formatPrice(low)}</span>
-      </span>
-    );
-  }
-
   return (
-    <span className={cn('inline-flex items-baseline justify-center gap-1', className)}>
-      <span className={normalClassName}>{formatPrice(low)}</span>
-      <span className={separatorClassName} aria-hidden>
-        –
-      </span>
-      <span className={highClassName}>{formatPrice(high)}</span>
+    <span className={cn('inline-flex flex-col items-center gap-0.5', className)}>
+      {showFrom ? (
+        <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted">From</span>
+      ) : null}
+      {same ? (
+        <span className={cn('inline-flex items-baseline justify-center gap-1', normalClassName)}>
+          {formatPrice(low)}
+        </span>
+      ) : (
+        <span className="inline-flex items-baseline justify-center gap-1">
+          <span className={normalClassName}>{formatPrice(low)}</span>
+          <span className={separatorClassName} aria-hidden>
+            –
+          </span>
+          <span className={highClassName}>{formatPrice(high)}</span>
+        </span>
+      )}
     </span>
   );
 }
