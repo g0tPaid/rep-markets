@@ -34,7 +34,7 @@ export function ProductBrandWatermark() {
 export function ProductBrandMark({ className = '' }: { className?: string }) {
   return (
     <p
-      className={`text-center font-serif text-[18px] font-bold leading-none tracking-[-0.03em] text-red-600 ${className}`}
+      className={`font-serif text-[18px] font-bold leading-none tracking-[-0.03em] text-red-600 ${className}`}
       style={{ color: '#DC2626' }}
     >
       www.rep.markets
