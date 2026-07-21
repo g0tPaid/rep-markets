@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Header } from '@/components/store/header';
 import { ProductCard } from '@/components/store/product-card';
+import {
+  ProductBrandMark,
+  ProductBrandWatermark,
+} from '@/components/store/product-brand-watermark';
 import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 import {
   getQualityOption,
@@ -68,16 +72,39 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
   }, [lightboxIndex, gallery.length]);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="relative min-h-screen overflow-hidden bg-white">
+      <ProductBrandWatermark />
+      <div className="relative z-[2]">
       <Header />
-      <div className="space-y-2 bg-white p-1">
-        <div className="grid grid-cols-2 gap-1">
+      <ProductBrandMark className="border-b border-hairline bg-white/80 py-3" />
+      <div className="relative space-y-2 bg-transparent p-1">
+        <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-2xl">
+          <div className="absolute left-1/2 top-1/2 flex w-[240%] -translate-x-1/2 -translate-y-1/2 -rotate-45 flex-col gap-8 opacity-[0.09]">
+            {Array.from({ length: 10 }, (_, row) => (
+              <div
+                key={`gal-${row}`}
+                className="flex whitespace-nowrap"
+                style={{ marginLeft: row % 2 === 0 ? '0' : '3.5rem' }}
+              >
+                {Array.from({ length: 6 }, (_, col) => (
+                  <span
+                    key={col}
+                    className="px-5 font-serif text-[18px] font-bold tracking-[-0.02em] text-black"
+                  >
+                    www.rep.markets
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="relative z-[2] grid grid-cols-2 gap-1">
           {heroImages.map((image, index) => (
             <button
               key={`hero-${image}-${index}`}
               type="button"
               onClick={() => setLightboxIndex(index)}
-              className="block overflow-hidden rounded-2xl bg-surface text-left"
+              className="relative block overflow-hidden rounded-2xl bg-surface text-left"
               aria-label={`Enlarge ${product.name} image ${index + 1}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -88,12 +115,20 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
                 decoding="async"
                 className="aspect-[3/4] w-full object-cover"
               />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+              >
+                <span className="-rotate-45 font-serif text-[15px] font-bold tracking-[-0.02em] text-black/15">
+                  www.rep.markets
+                </span>
+              </span>
             </button>
           ))}
         </div>
 
         {moreImages.length > 0 ? (
-          <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
+          <div className="relative z-[2] -mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
             <div className="flex w-max gap-1.5">
               {moreImages.map((image, offset) => {
                 const index = offset + 2;
@@ -113,6 +148,14 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
                       decoding="async"
                       className="h-28 w-[5.5rem] object-cover sm:h-32 sm:w-24"
                     />
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    >
+                      <span className="-rotate-45 font-serif text-[9px] font-bold text-black/15">
+                        www.rep.markets
+                      </span>
+                    </span>
                   </button>
                 );
               })}
@@ -383,6 +426,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           ))}
         </div>
       </section>
+      </div>
     </main>
   );
 }
