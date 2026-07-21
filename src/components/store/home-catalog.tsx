@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CategoryNav } from '@/components/store/category-nav';
 import { Header } from '@/components/store/header';
 import { OffersBanner } from '@/components/store/offers-banner';
 import { ProductBrandWatermark } from '@/components/store/product-brand-watermark';
@@ -10,9 +9,7 @@ import { SearchOverlay } from '@/components/store/search-overlay';
 import { ViewToggle } from '@/components/store/view-toggle';
 import {
   filterProducts,
-  type ProductCategory,
   type ProductView,
-  type StoreNavCategory,
   type StoreProduct,
 } from '@/lib/products';
 
@@ -20,11 +17,9 @@ const PAGE_SIZE = 12;
 
 type HomeCatalogProps = {
   products: StoreProduct[];
-  navCategories: StoreNavCategory[];
 };
 
-export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogProps) {
-  const [category, setCategory] = useState<ProductCategory>('ALL');
+export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
   const [view, setView] = useState<ProductView>('REPS');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [shippingNoticeOpen, setShippingNoticeOpen] = useState(true);
@@ -48,22 +43,8 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
     }
   }
 
-  const lineCategories = useMemo(() => {
-    const line = view === 'NON_REP' ? 'NON_REP' : 'REP';
-    return navCategories.filter((item) => item.line === line);
-  }, [navCategories, view]);
-
-  useEffect(() => {
-    if (category === 'ALL') return;
-    const stillValid = lineCategories.some((item) => item.slug === category);
-    if (!stillValid) {
-      setCategory('ALL');
-      setVisibleCount(PAGE_SIZE);
-    }
-  }, [category, lineCategories]);
-
   const filtered = useMemo(() => {
-    return filterProducts(catalog, category, view)
+    return filterProducts(catalog, 'ALL', view)
       .slice()
       .sort((a, b) => {
         const aFeatured = Boolean(a.featured);
@@ -74,19 +55,13 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
         if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
         return 0;
       });
-  }, [catalog, category, view]);
+  }, [catalog, view]);
 
   const products = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
-  function changeCategory(nextCategory: ProductCategory) {
-    setCategory(nextCategory);
-    setVisibleCount(PAGE_SIZE);
-  }
-
   function changeView(nextView: ProductView) {
     setView(nextView);
-    setCategory('ALL');
     setVisibleCount(PAGE_SIZE);
   }
 
@@ -141,7 +116,6 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
       </section>
       <ViewToggle value={view} onChange={changeView} />
       <OffersBanner />
-      <CategoryNav categories={lineCategories} value={category} onChange={changeCategory} />
       <SearchOverlay products={filterProducts(catalog, 'ALL', view)} />
       <ProductGrid products={products} />
       {filtered.length ? (
