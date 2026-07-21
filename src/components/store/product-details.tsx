@@ -76,7 +76,6 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
       <ProductBrandWatermark />
       <div className="relative z-[2]">
       <Header />
-      <ProductBrandMark className="border-b border-hairline bg-white/80 py-3" />
       <div className="relative space-y-2 bg-transparent p-1">
         <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-2xl">
           <div className="absolute left-1/2 top-1/2 flex w-[240%] -translate-x-1/2 -translate-y-1/2 -rotate-45 flex-col gap-8 opacity-[0.09]">
@@ -163,6 +162,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           </div>
         ) : null}
       </div>
+      <ProductBrandMark className="border-b border-hairline bg-white/80 py-3" />
 
       <section className="px-4 py-7">
         <p className="mb-5 text-[11px] font-semibold tracking-[0.22em] text-muted">
