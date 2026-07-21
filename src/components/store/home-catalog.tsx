@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CategoryNav } from '@/components/store/category-nav';
 import { Header } from '@/components/store/header';
 import { OffersBanner } from '@/components/store/offers-banner';
+import { ProductBrandWatermark } from '@/components/store/product-brand-watermark';
 import { ProductGrid } from '@/components/store/product-grid';
 import { SearchOverlay } from '@/components/store/search-overlay';
 import { ViewToggle } from '@/components/store/view-toggle';
@@ -90,7 +91,9 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
   }
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="relative min-h-screen overflow-hidden bg-white">
+      <ProductBrandWatermark />
+      <div className="relative z-[2]">
       <Header />
       <section className="px-4 pb-3 pt-2">
         <p className="mx-auto max-w-[360px] text-center text-[10px] font-bold uppercase leading-4 tracking-[0.08em] text-black/80">
@@ -176,6 +179,7 @@ export function HomeCatalog({ products: catalog, navCategories }: HomeCatalogPro
           <span className="font-semibold text-black">free shipping</span>.
         </p>
       </section>
+      </div>
     </main>
   );
 }
