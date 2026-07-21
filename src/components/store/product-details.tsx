@@ -162,7 +162,6 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           </div>
         ) : null}
       </div>
-      <ProductBrandMark className="border-b border-hairline bg-white/80 py-3" />
 
       <section className="px-4 py-7">
         <p className="mb-5 text-[11px] font-semibold tracking-[0.22em] text-muted">
