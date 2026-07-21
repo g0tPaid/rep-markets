@@ -332,6 +332,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         )}
       >
         <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">QUALITY</p>
+        <ProductBrandMark className="mb-3" />
         <div className="grid grid-cols-1 gap-2">
           {QUALITY_OPTIONS.map((option) => {
             const optionPrice = priceForQuality(basePrice, option.id, product.qualityPrices);
