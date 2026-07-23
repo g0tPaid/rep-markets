@@ -6,6 +6,8 @@ import {
   repairFeaturedSlots,
   repairLegacyMediaLinks,
   toggleFeaturedProduct,
+  toggleFreeShipping,
+  toggleProductSale,
 } from "@/app/admin/actions/products";
 import { requireAdmin } from "@/lib/auth";
 import {
@@ -26,6 +28,7 @@ const LINE_LABEL: Record<CatalogLine, string> = {
 type ProductsPageProps = {
   searchParams?: Promise<{
     q?: string;
+    sort?: string;
     featuredError?: string;
     line?: string;
     mediaRepair?: string;
@@ -44,6 +47,11 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
 
   const params = await searchParams;
   const query = params?.q?.trim() ?? "";
+  const sort = params?.sort === "price-asc" || params?.sort === "price-desc" ? params.sort : "newest";
+  const listQuery = new URLSearchParams();
+  if (query) listQuery.set("q", query);
+  if (sort !== "newest") listQuery.set("sort", sort);
+  const listReturnTo = `/admin/products${listQuery.toString() ? `?${listQuery}` : ""}`;
   const featuredError = params?.featuredError;
   const limitedLine =
     params?.line === "NON_REP" || params?.line === "REP" ? (params.line as CatalogLine) : null;
@@ -58,6 +66,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
     sku: true,
     price: true,
     salePrice: true,
+    freeShipping: true,
     stock: true,
     status: true,
     featured: true,
@@ -99,6 +108,12 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
       select: { url: true, productId: true },
     }),
   ]);
+
+  const sortedProducts = [...products].sort((a, b) => {
+    if (sort === "price-asc") return Number(a.price) - Number(b.price);
+    if (sort === "price-desc") return Number(b.price) - Number(a.price);
+    return 0; // newest already from query order
+  });
 
   const featuredByLine: Record<CatalogLine, typeof featuredProducts> = {
     REP: featuredProducts.filter((product) => catalogLineFromCategory(product.category) === "REP"),
@@ -274,128 +289,172 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
         );
       })}
 
-      <form className="flex gap-2" action="/admin/products">
+      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" action="/admin/products">
         <input
           name="q"
           defaultValue={query}
           placeholder="Search by name, slug, or SKU"
           className="w-full border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black"
         />
+        <select
+          name="sort"
+          defaultValue={sort}
+          className="border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black"
+          aria-label="Sort products"
+        >
+          <option value="newest">Newest</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+        </select>
         <button className="border border-black px-4 py-2 text-sm font-medium" type="submit">
-          Search
+          Apply
         </button>
       </form>
 
-      <section className="overflow-hidden border border-black/10 bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="border-b border-black/10 bg-neutral-50 text-black/55">
-              <tr>
-                <th className="px-4 py-3 font-medium">Product</th>
-                <th className="px-4 py-3 font-medium">Line</th>
-                <th className="px-4 py-3 font-medium">Category</th>
-                <th className="px-4 py-3 font-medium">Price</th>
-                <th className="px-4 py-3 font-medium">Stock</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Featured</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/10">
-              {products.map((product) => {
-                const thumb = product.media[0]?.url;
-                const line = catalogLineFromCategory(product.category);
-                const lineFeatured = featuredByLine[line];
-                const slot = product.featured
-                  ? lineFeatured.findIndex((item) => item.id === product.id) + 1
-                  : 0;
-                const needsPhoto = brokenProductIds.has(product.id);
-                return (
-                  <tr key={product.id} className={product.featured ? "bg-emerald-50/40" : undefined}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="relative size-12 shrink-0 overflow-hidden border border-black/10 bg-neutral-100">
-                          {thumb && !needsPhoto ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={thumb}
-                              alt={product.media[0]?.alt || product.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-[9px] text-red-700">
-                              NO IMG
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium">{product.name}</div>
-                          <div className="mt-1 truncate text-xs text-black/50">
-                            {product.sku ?? product.slug}
-                            {needsPhoto ? " · needs re-upload" : ""}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-xs font-semibold tracking-[0.12em]">
-                      {LINE_LABEL[line]}
-                    </td>
-                    <td className="px-4 py-4">{product.category?.name ?? "Unassigned"}</td>
-                    <td className="px-4 py-4">
-                      {product.salePrice ? (
-                        <span>
-                          {money(product.salePrice)}{" "}
-                          <span className="text-black/40 line-through">{money(product.price)}</span>
-                        </span>
-                      ) : (
-                        money(product.price)
-                      )}
-                    </td>
-                    <td className="px-4 py-4">{product.stock}</td>
-                    <td className="px-4 py-4">{product.status}</td>
-                    <td className="px-4 py-4">
-                      <form action={toggleFeaturedProduct}>
-                        <input type="hidden" name="id" value={product.id} />
-                        <button
-                          type="submit"
-                          className={
-                            product.featured
-                              ? "bg-emerald-600 px-3 py-1.5 text-xs font-semibold tracking-[0.12em] text-white"
-                              : "border border-black/20 px-3 py-1.5 text-xs font-semibold tracking-[0.12em] hover:border-black"
-                          }
-                        >
-                          {product.featured ? `IN SLOT #${slot}` : "ADD TO FEATURED"}
-                        </button>
-                      </form>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex justify-end gap-3">
-                        <Link
-                          href={`/admin/products/edit/${product.id}`}
-                          className="underline underline-offset-4"
-                        >
-                          Edit
-                        </Link>
-                        <form action={deleteProduct}>
-                          <input type="hidden" name="id" value={product.id} />
-                          <button
-                            className="text-red-700 underline underline-offset-4"
-                            type="submit"
-                            formNoValidate
-                          >
-                            Delete
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <section>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {sortedProducts.map((product) => {
+            const thumb = product.media[0]?.url;
+            const line = catalogLineFromCategory(product.category);
+            const lineFeatured = featuredByLine[line];
+            const slot = product.featured
+              ? lineFeatured.findIndex((item) => item.id === product.id) + 1
+              : 0;
+            const needsPhoto = brokenProductIds.has(product.id);
+            const onSale =
+              typeof product.salePrice === "number" &&
+              Number.isFinite(product.salePrice) &&
+              product.salePrice > 0 &&
+              product.salePrice < product.price;
+            return (
+              <article
+                key={product.id}
+                className={`overflow-hidden border bg-white ${
+                  product.featured ? "border-emerald-600/40" : "border-black/10"
+                }`}
+              >
+                <div className="relative aspect-[3/4] bg-neutral-100">
+                  {thumb && !needsPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumb}
+                      alt={product.media[0]?.alt || product.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[10px] text-red-700">
+                      NO IMG
+                    </div>
+                  )}
+                  {onSale ? (
+                    <span className="pointer-events-none absolute -left-7 top-3 w-28 -rotate-45 bg-red-600 py-1 text-center text-[8px] font-bold uppercase tracking-[0.14em] text-white shadow">
+                      Sale
+                    </span>
+                  ) : null}
+                  {product.freeShipping ? (
+                    <span className="absolute bottom-2 left-2 bg-black/85 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-white">
+                      Free ship
+                    </span>
+                  ) : null}
+                </div>
+                <div className="space-y-2 p-3">
+                  <div>
+                    <p className="line-clamp-2 text-sm font-medium leading-snug">{product.name}</p>
+                    <p className="mt-1 truncate text-[10px] uppercase tracking-[0.12em] text-black/45">
+                      {LINE_LABEL[line]} · {product.category?.name ?? "Unassigned"}
+                    </p>
+                  </div>
+                  <p className="text-sm">
+                    {onSale ? (
+                      <>
+                        <span className="font-semibold text-emerald-700">{money(product.salePrice)}</span>{" "}
+                        <span className="text-black/40 line-through">{money(product.price)}</span>
+                      </>
+                    ) : (
+                      <span className="font-semibold">{money(product.price)}</span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-black/50">
+                    Stock {product.stock} · {product.status}
+                  </p>
+                  <form action={toggleProductSale}>
+                    <input type="hidden" name="id" value={product.id} />
+                    <input type="hidden" name="returnTo" value={listReturnTo} />
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2 text-left text-xs"
+                      aria-pressed={onSale}
+                    >
+                      <span
+                        className={`grid size-3.5 place-items-center border ${
+                          onSale ? "border-red-600 bg-red-600 text-white" : "border-black/30 bg-white"
+                        }`}
+                        aria-hidden
+                      >
+                        {onSale ? "✓" : ""}
+                      </span>
+                      On sale (−10%)
+                    </button>
+                  </form>
+                  <form action={toggleFreeShipping}>
+                    <input type="hidden" name="id" value={product.id} />
+                    <input type="hidden" name="returnTo" value={listReturnTo} />
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2 text-left text-xs"
+                      aria-pressed={product.freeShipping}
+                    >
+                      <span
+                        className={`grid size-3.5 place-items-center border ${
+                          product.freeShipping
+                            ? "border-black bg-black text-white"
+                            : "border-black/30 bg-white"
+                        }`}
+                        aria-hidden
+                      >
+                        {product.freeShipping ? "✓" : ""}
+                      </span>
+                      Free shipping
+                    </button>
+                  </form>
+                  <form action={toggleFeaturedProduct}>
+                    <input type="hidden" name="id" value={product.id} />
+                    <button
+                      type="submit"
+                      className={
+                        product.featured
+                          ? "w-full bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold tracking-[0.1em] text-white"
+                          : "w-full border border-black/20 px-2 py-1.5 text-[10px] font-semibold tracking-[0.1em] hover:border-black"
+                      }
+                    >
+                      {product.featured ? `FEATURED #${slot}` : "ADD TO FEATURED"}
+                    </button>
+                  </form>
+                  <div className="flex gap-3 pt-1 text-xs">
+                    <Link
+                      href={`/admin/products/edit/${product.id}`}
+                      className="underline underline-offset-4"
+                    >
+                      Edit
+                    </Link>
+                    <form action={deleteProduct}>
+                      <input type="hidden" name="id" value={product.id} />
+                      <button
+                        className="text-red-700 underline underline-offset-4"
+                        type="submit"
+                        formNoValidate
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
-        {!products.length ? (
-          <p className="border-t border-black/10 p-5 text-sm text-black/55">
+        {!sortedProducts.length ? (
+          <p className="border border-black/10 bg-white p-5 text-sm text-black/55">
             No products found. Create your first rep.markets product to start the catalog.
           </p>
         ) : null}

@@ -41,14 +41,26 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           )}
         </Link>
         {product.featured && product.homepageOrder ? (
-          <span className="absolute left-1.5 top-1.5 grid min-w-6 place-items-center bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-black backdrop-blur">
+          <span className="absolute left-1.5 top-1.5 z-[1] grid min-w-6 place-items-center bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-black backdrop-blur">
             {product.homepageOrder}
+          </span>
+        ) : null}
+        {typeof product.salePrice === 'number' &&
+        product.salePrice > 0 &&
+        product.salePrice < product.price ? (
+          <span className="pointer-events-none absolute -left-7 top-4 z-[1] w-28 -rotate-45 bg-red-600 py-1 text-center text-[8px] font-bold uppercase tracking-[0.14em] text-white shadow">
+            Sale
+          </span>
+        ) : null}
+        {product.freeShipping ? (
+          <span className="absolute bottom-2 left-2 z-[1] bg-black/85 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-white">
+            Free shipping
           </span>
         ) : null}
         <button
           type="button"
           onClick={() => toggle(product.id)}
-          className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-white/85 text-black backdrop-blur"
+          className="absolute right-1.5 top-1.5 z-[2] grid size-7 place-items-center rounded-full bg-white/85 text-black backdrop-blur"
           aria-label={liked ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
           aria-pressed={liked}
         >

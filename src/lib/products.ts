@@ -118,6 +118,8 @@ export type StoreProduct = {
   name: string;
   price: number;
   salePrice?: number | null;
+  /** When true, show Free shipping badge on product cards */
+  freeShipping?: boolean;
   qualityPrices?: QualityPriceMap;
   /** REP or NON-REP catalog line (from parent category in admin) */
   line: CatalogLine;
@@ -164,6 +166,7 @@ export type PrismaProductShape = {
   name: string;
   price: DecimalLike;
   salePrice?: DecimalLike;
+  freeShipping?: boolean | null;
   qualityPrices?: unknown;
   shortDescription?: string | null;
   longDescription?: string | null;
@@ -246,6 +249,7 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     name: product.name,
     price: toNumber(product.price),
     salePrice: product.salePrice ? toNumber(product.salePrice) : null,
+    freeShipping: Boolean(product.freeShipping),
     qualityPrices: parseQualityPrices(product.qualityPrices),
     line: toCatalogLine(product.category),
     category: categoryLabel,
