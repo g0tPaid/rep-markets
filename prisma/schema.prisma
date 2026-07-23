@@ -141,6 +141,7 @@ model Product {
   status           ProductStatus @default(DRAFT)
   featured         Boolean       @default(false)
   newArrival       Boolean       @default(false)
+  freeShipping     Boolean       @default(false)
   homepageOrder    Int?
   categoryId       String?
   createdAt        DateTime      @default(now())

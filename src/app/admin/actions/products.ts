@@ -414,6 +414,60 @@ export async function toggleFeaturedProduct(formData: FormData) {
   redirect("/admin/products");
 }
 
+/** Toggle 10% sale price (salePrice = price * 0.9) for storefront SALE banner. */
+export async function toggleProductSale(formData: FormData) {
+  await requireAdmin();
+
+  const id = stringValue(formData, "id");
+  if (!id) return;
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { id: true, price: true, salePrice: true, slug: true },
+  });
+  if (!product) return;
+
+  const onSale =
+    typeof product.salePrice === "number" &&
+    Number.isFinite(product.salePrice) &&
+    product.salePrice > 0 &&
+    product.salePrice < product.price;
+
+  const nextSale = onSale ? null : Math.round(product.price * 0.9 * 100) / 100;
+
+  await prisma.product.update({
+    where: { id },
+    data: { salePrice: nextSale },
+  });
+
+  bustCatalogCache(product.slug);
+  const returnTo = stringValue(formData, "returnTo");
+  redirect(returnTo.startsWith("/admin/products") ? returnTo : "/admin/products");
+}
+
+/** Toggle free-shipping flag shown on storefront product cards. */
+export async function toggleFreeShipping(formData: FormData) {
+  await requireAdmin();
+
+  const id = stringValue(formData, "id");
+  if (!id) return;
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { id: true, freeShipping: true, slug: true },
+  });
+  if (!product) return;
+
+  await prisma.product.update({
+    where: { id },
+    data: { freeShipping: !product.freeShipping },
+  });
+
+  bustCatalogCache(product.slug);
+  const returnTo = stringValue(formData, "returnTo");
+  redirect(returnTo.startsWith("/admin/products") ? returnTo : "/admin/products");
+}
+
 export async function moveFeaturedProduct(formData: FormData) {
   await requireAdmin();
 

@@ -17,6 +17,7 @@ type CatalogRow = {
   name: string;
   price: number;
   salePrice: number | null;
+  freeShipping?: boolean;
   qualityPrices?: unknown;
   shortDescription: string | null;
   longDescription?: string | null;
@@ -78,6 +79,7 @@ const listSelect = {
   name: true,
   price: true,
   salePrice: true,
+  freeShipping: true,
   qualityPrices: true,
   shortDescription: true,
   brand: true,
