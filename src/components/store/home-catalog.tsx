@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowLeftRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Header } from '@/components/store/header';
 import { OffersBanner } from '@/components/store/offers-banner';
@@ -22,7 +23,7 @@ type HomeCatalogProps = {
 
 export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
   const [view, setView] = useState<ProductView>('REPS');
-  const [layout, setLayout] = useState<'swipe' | 'grid'>('swipe');
+  const [layout, setLayout] = useState<'grid' | 'swipe'>('grid');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [shippingNoticeOpen, setShippingNoticeOpen] = useState(true);
 
@@ -120,15 +121,17 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
       <OffersBanner />
       <SearchOverlay products={filterProducts(catalog, 'ALL', view)} />
       <div aria-label="Catalog layout" role="group" className="mx-auto mb-2 flex w-fit gap-1 rounded-full bg-surface p-1">
-        {(['swipe', 'grid'] as const).map((option) => (
+        {(['grid', 'swipe'] as const).map((option) => (
           <button
             key={option}
             type="button"
             aria-pressed={layout === option}
             onClick={() => setLayout(option)}
-            className="min-h-9 rounded-full px-4 text-xs font-semibold capitalize text-neutral-700 aria-pressed:bg-white aria-pressed:text-neutral-950 aria-pressed:shadow-sm"
+            className={option === 'swipe'
+              ? 'catalog-swipe-pill inline-flex min-h-9 items-center gap-2 rounded-full bg-rose-100 px-4 text-xs font-semibold text-rose-800 hover:bg-rose-200 aria-pressed:bg-rose-700 aria-pressed:text-white'
+              : 'min-h-9 rounded-full px-4 text-xs font-semibold text-neutral-700 hover:text-neutral-950 aria-pressed:bg-white aria-pressed:text-neutral-950 aria-pressed:shadow-sm'}
           >
-            {option}
+            {option === 'swipe' ? <><ArrowLeftRight size={14} aria-hidden /> Swipe</> : 'Grid'}
           </button>
         ))}
       </div>

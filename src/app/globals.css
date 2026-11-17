@@ -80,3 +80,24 @@ a {
 .offers-marquee {
   animation: offers-marquee 22s linear infinite;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .catalog-swipe-pill[aria-pressed="false"] {
+    animation: catalog-swipe-pulse 3.6s ease-in-out infinite;
+  }
+
+  .catalog-swipe-pill[aria-pressed="false"] svg {
+    animation: catalog-swipe-arrow 3.6s ease-in-out infinite;
+  }
+}
+
+@keyframes catalog-swipe-pulse {
+  0%, 60%, 100% { box-shadow: 0 0 0 0 rgb(190 18 60 / 0); }
+  22% { box-shadow: 0 0 0 4px rgb(190 18 60 / 0.16); }
+}
+
+@keyframes catalog-swipe-arrow {
+  0%, 42%, 100% { transform: translateX(0); }
+  12% { transform: translateX(3px); }
+  27% { transform: translateX(-3px); }
+}
