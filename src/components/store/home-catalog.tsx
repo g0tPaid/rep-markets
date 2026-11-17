@@ -6,6 +6,7 @@ import { OffersBanner } from '@/components/store/offers-banner';
 import { ProductBrandWatermark } from '@/components/store/product-brand-watermark';
 import { ProductGrid } from '@/components/store/product-grid';
 import { SearchOverlay } from '@/components/store/search-overlay';
+import { SwipeCatalog } from '@/components/store/swipe-catalog';
 import { ViewToggle } from '@/components/store/view-toggle';
 import {
   filterProducts,
@@ -21,6 +22,7 @@ type HomeCatalogProps = {
 
 export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
   const [view, setView] = useState<ProductView>('REPS');
+  const [layout, setLayout] = useState<'swipe' | 'grid'>('swipe');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [shippingNoticeOpen, setShippingNoticeOpen] = useState(true);
 
@@ -117,8 +119,25 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
       <ViewToggle value={view} onChange={changeView} />
       <OffersBanner />
       <SearchOverlay products={filterProducts(catalog, 'ALL', view)} />
-      <ProductGrid products={products} />
-      {filtered.length ? (
+      <div aria-label="Catalog layout" role="group" className="mx-auto mb-2 flex w-fit gap-1 rounded-full bg-surface p-1">
+        {(['swipe', 'grid'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={layout === option}
+            onClick={() => setLayout(option)}
+            className="min-h-9 rounded-full px-4 text-xs font-semibold capitalize text-neutral-700 aria-pressed:bg-white aria-pressed:text-neutral-950 aria-pressed:shadow-sm"
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+      {layout === 'swipe' ? (
+        <SwipeCatalog key={view} products={filtered} />
+      ) : (
+        <ProductGrid products={products} />
+      )}
+      {layout === 'grid' && filtered.length ? (
         <div className="px-4 pb-6">
           {hasMore ? (
             <button

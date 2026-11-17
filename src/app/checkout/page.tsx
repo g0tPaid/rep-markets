@@ -118,7 +118,7 @@ export default function CheckoutPage() {
           <div className="space-y-4">
             {items.map((item) => (
               <div
-                key={`${item.productId}-${item.size ?? 'default'}-${item.quality ?? 'default'}`}
+                key={JSON.stringify([item.productId, item.size, item.quality, item.color])}
                 className="flex justify-between gap-4 text-sm"
               >
                 <div>

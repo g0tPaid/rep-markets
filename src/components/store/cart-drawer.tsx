@@ -47,7 +47,7 @@ export function CartDrawer() {
                 <div className="space-y-4">
                   {items.map((item) => (
                     <div
-                      key={`${item.productId}-${item.size ?? 'default'}-${item.quality ?? 'default'}`}
+                      key={JSON.stringify([item.productId, item.size, item.quality, item.color])}
                       className="grid grid-cols-[72px_1fr] gap-3"
                     >
                       <div

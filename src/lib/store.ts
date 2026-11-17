@@ -20,7 +20,10 @@ type CartState = {
   open: () => void;
   close: () => void;
   toggle: () => void;
-  addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
+  addItem: (
+    item: Omit<CartItem, 'quantity'> & { quantity?: number },
+    options?: { openCart?: boolean },
+  ) => void;
   removeItem: (productId: string, size?: string, quality?: string, color?: string) => void;
   setQuantity: (
     productId: string,
@@ -57,7 +60,7 @@ export const useCart = create<CartState>()(
       open: () => set({ isOpen: true }),
       close: () => set({ isOpen: false }),
       toggle: () => set({ isOpen: !get().isOpen }),
-      addItem: (item) => {
+      addItem: (item, { openCart = true } = {}) => {
         const qty = item.quantity ?? 1;
         set((state) => {
           const existing = state.items.find((i) =>
@@ -70,12 +73,12 @@ export const useCart = create<CartState>()(
                   ? { ...i, quantity: i.quantity + qty }
                   : i,
               ),
-              isOpen: true,
+              isOpen: openCart,
             };
           }
           return {
             items: [...state.items, { ...item, quantity: qty }],
-            isOpen: true,
+            isOpen: openCart,
           };
         });
       },
