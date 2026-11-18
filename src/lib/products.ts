@@ -10,7 +10,7 @@ export const CATEGORIES = [
   'CAPS',
 ] as const;
 
-export const VIEWS = ['REPS', 'NON_REP'] as const;
+export const VIEWS = ['REPS', 'NON_REP', 'GTA_6'] as const;
 
 export type ProductView = (typeof VIEWS)[number];
 /** Selected nav key: ALL or a category slug from admin */
@@ -26,6 +26,7 @@ export type StoreNavCategory = {
 export const VIEW_LABELS: Record<ProductView, string> = {
   REPS: 'REPS',
   NON_REP: 'NON-REP',
+  GTA_6: 'GTA 6',
 };
 
 export const QUALITY_OPTIONS = [
@@ -436,9 +437,19 @@ export function filterProducts(
 ) {
   const selected = category.trim();
   const selectedKey = selected.toLowerCase();
-  const line: CatalogLine = view === 'NON_REP' ? 'NON_REP' : 'REP';
 
-  const byLine = products.filter((product) => product.line === line);
+  // GTA 6 has its own collection, managed through the existing product name,
+  // category or tags fields. No database migration or new admin UI required.
+  const isGta6Product = (product: StoreProduct) =>
+    [product.name, product.category, product.categorySlug || '', ...product.tags]
+      .some((value) => /\b(?:gta[\s-]?(?:6|vi)|grand\s+theft\s+auto[\s-]?(?:6|vi))\b/i.test(value));
+
+  const byLine =
+    view === 'GTA_6'
+      ? products.filter(isGta6Product)
+      : products.filter(
+          (product) => product.line === (view === 'NON_REP' ? 'NON_REP' : 'REP') && !isGta6Product(product),
+        );
 
   const filtered =
     !selected || selected.toUpperCase() === 'ALL'
