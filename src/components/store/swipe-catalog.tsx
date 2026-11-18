@@ -147,7 +147,8 @@ function ProductOptions({
   const addItem = useCart((state) => state.addItem);
   const [size, setSize] = useState(product.sizes.length ? '' : 'OS');
   const [color, setColor] = useState(product.colors.length === 1 ? product.colors[0] : '');
-  const [quality, setQuality] = useState('');
+  const isFlatPriceProduct = product.tags.includes('flat-price');
+  const [quality, setQuality] = useState(isFlatPriceProduct ? 'NORMAL' : '');
   const base = product.salePrice ?? product.price;
   const ready = Boolean(size && quality && (!product.colors.length || color));
   const price = priceForQuality(base, quality, product.qualityPrices);
@@ -210,14 +211,14 @@ function ProductOptions({
         ) : <p className="text-sm font-semibold">Size · One size</p>}
         {product.colors.length ? (
           <label className="block text-sm font-semibold">
-            Color
+            {isFlatPriceProduct ? 'Design' : 'Color'}
             <select required value={color} onChange={(event) => setColor(event.target.value)} className={selectClassName}>
-              <option value="" disabled>Select a color</option>
+              <option value="" disabled>{isFlatPriceProduct ? 'Select a design' : 'Select a color'}</option>
               {product.colors.map((option) => <option key={option}>{option}</option>)}
             </select>
           </label>
         ) : null}
-        <label className="block text-sm font-semibold">
+        {!isFlatPriceProduct ? <label className="block text-sm font-semibold">
           Quality
           <select required value={quality} onChange={(event) => setQuality(event.target.value)} className={selectClassName}>
             <option value="" disabled>Select a quality</option>
@@ -227,7 +228,7 @@ function ProductOptions({
               </option>
             ))}
           </select>
-        </label>
+        </label> : null}
         <button type="submit" disabled={!ready} className="min-h-12 w-full rounded-full bg-rose-700 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-800 disabled:bg-neutral-200 disabled:text-neutral-600">
           Add to cart{quality ? ` · ${formatPrice(price)}` : ''}
         </button>

@@ -38,6 +38,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
   );
   const heroImages = gallery.slice(0, 2);
   const moreImages = gallery.slice(2);
+  const isFlatPriceProduct = product.tags.includes('flat-price');
   const basePrice = product.salePrice ?? product.price;
   const quality = getQualityOption(selectedQuality);
   const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
@@ -306,7 +307,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
             product.sizes.length ? 'border-b' : 'border-y',
           )}
         >
-          <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">COLOR</p>
+          <p className="mb-3 text-[11px] font-semibold tracking-[0.22em]">{isFlatPriceProduct ? "DESIGN" : "COLOR"}</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {product.colors.map((color) => (
               <button
@@ -325,6 +326,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         </section>
       ) : null}
 
+      {!isFlatPriceProduct ? (
       <section
         className={cn(
           'border-hairline px-4 py-5',
@@ -371,6 +373,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           })}
         </div>
       </section>
+      ) : null}
 
       <section className="px-4 py-5">
         <div className="mb-4 flex items-center justify-between">
