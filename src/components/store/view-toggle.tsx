@@ -24,16 +24,16 @@ function GTA6Button({ selected, onClick }: { selected: boolean; onClick: () => v
           : 'hover:brightness-110',
       )}
     >
-      {/* Keep the supplied artwork intact, including its lettering and frame. */}
+      {/* Preserve the supplied transparent artwork without cropping or stretching. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/gta-vi-merch-shop-now.webp"
+        src="/images/gta-vi-merch-artwork.webp"
         alt=""
         aria-hidden="true"
         loading="eager"
         decoding="async"
         draggable={false}
-        className="block h-auto w-full max-w-[300px] select-none object-contain transition-transform duration-200 group-hover:scale-[1.025]"
+        className="block h-auto max-h-[120px] w-full max-w-[300px] select-none object-contain transition-transform duration-200 group-hover:scale-[1.025]"
       />
     </button>
   );
