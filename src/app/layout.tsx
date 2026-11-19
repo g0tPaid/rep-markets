@@ -1,20 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import { Cormorant_Garamond, DM_Sans } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import './globals.css';
-
-const sans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-sans-family',
-  display: 'swap',
-});
-
-const editorial = Cormorant_Garamond({
-  subsets: ['latin'],
-  variable: '--font-editorial',
-  display: 'swap',
-  weight: ['400', '500', '600'],
-});
 
 export const metadata: Metadata = {
   title: {
@@ -44,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${editorial.variable} antialiased`}>
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
