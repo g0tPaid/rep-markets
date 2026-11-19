@@ -548,11 +548,11 @@ export function BulkGtaImporter({
     router.refresh();
   }
 
-  async function publish() {
+  async function publish(preview = false) {
     if (!draftSelected.length || busy) return;
     if (
       !window.confirm(
-        `Publish ${draftSelected.length} reviewed GTA VI product(s) to the live store?`,
+        preview ? `Make ${draftSelected.length} selected GTA VI listings visible now? Products with missing price or stock will be catalog previews and cannot be ordered.` : `Publish ${draftSelected.length} reviewed GTA VI product(s) to the live store?`,
       )
     )
       return;
@@ -560,7 +560,7 @@ export function BulkGtaImporter({
     setProgress("Publishing selected drafts…");
     setNotice("");
     try {
-      const result = await api({ action: "publish", ids: draftSelected });
+      const result = await api({ action: preview ? "publish-preview" : "publish", ids: draftSelected });
       setNotice(`${result.published} GTA VI product(s) published.`);
       setDraftSelected([]);
       router.refresh();
@@ -1171,10 +1171,11 @@ export function BulkGtaImporter({
         >
           Publish selected ({draftSelected.length})
         </button>
+        <button className={`${secondary} ml-2`} disabled={busy || !draftSelected.length} onClick={() => void publish(true)}>Publish as catalog previews ({draftSelected.length})</button>
         {draftSelected.length > 0 && !selectedReady && (
           <p className="text-xs text-amber-700">
             Selected drafts need a positive price, verified positive stock and
-            an image before publishing.
+            an image before customers can order. Publish as catalog previews to show them now.
           </p>
         )}
       </section>

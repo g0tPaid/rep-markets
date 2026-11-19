@@ -1,9 +1,11 @@
+import React from 'react';
 import { qualityPriceRange } from '@/lib/products';
 import { cn, formatPrice } from '@/lib/utils';
 
 type QualityPriceRangeProps = {
   product: {
     price: number;
+    catalogPreview?: boolean;
     salePrice?: number | null;
     qualityPrices?: Parameters<typeof qualityPriceRange>[0]['qualityPrices'];
   };
@@ -26,6 +28,7 @@ export function QualityPriceRange({
   separatorClassName = 'text-[10px] opacity-50',
   showFrom = false,
 }: QualityPriceRangeProps) {
+  if (product.catalogPreview || product.price <= 0) return <span className="text-xs font-semibold text-neutral-600">{product.price <= 0 ? 'Price coming soon' : 'Availability pending'}</span>;
   const { low, high } = qualityPriceRange(product);
   const same = Math.abs(high - low) < 0.01;
 

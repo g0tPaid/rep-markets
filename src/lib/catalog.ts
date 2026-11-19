@@ -16,6 +16,7 @@ type CatalogRow = {
   slug: string;
   name: string;
   price: number;
+  stock: number;
   salePrice: number | null;
   freeShipping?: boolean;
   qualityPrices?: unknown;
@@ -58,6 +59,18 @@ function normalizeProduct(product: CatalogRow): StoreProduct {
   });
 }
 
+/** Only verified, linked paid or fulfilled units, never estimates or random counts. */
+async function withVerifiedSales(products: StoreProduct[]): Promise<StoreProduct[]> {
+  if (!products.length) return products;
+  const sales = await prisma.orderItem.groupBy({
+    by: ['productId'],
+    where: { productId: { in: products.map((p) => p.id) }, quantity: { gt: 0 }, order: { status: { in: ['PAID', 'PACKED', 'SHIPPED', 'DELIVERED'] } } },
+    _sum: { quantity: true },
+  });
+  const counts = new Map(sales.map((row) => [row.productId, row._sum.quantity ?? 0]));
+  return products.map((product) => ({ ...product, soldCount: counts.get(product.id) ?? 0 }));
+}
+
 const categorySelect = {
   select: {
     name: true,
@@ -78,6 +91,7 @@ const listSelect = {
   slug: true,
   name: true,
   price: true,
+  stock: true,
   salePrice: true,
   freeShipping: true,
   qualityPrices: true,
@@ -114,7 +128,7 @@ async function loadActiveProducts(): Promise<StoreProduct[]> {
     orderBy: [{ featured: 'desc' }, { homepageOrder: 'asc' }, { createdAt: 'desc' }],
   } as never)) as unknown as CatalogRow[];
 
-  const mapped = products.map(normalizeProduct);
+  const mapped = await withVerifiedSales(products.map(normalizeProduct));
   const lines: CatalogLine[] = ['REP', 'NON_REP'];
   const rankById = new Map<string, number>();
 
@@ -165,7 +179,7 @@ export async function getActiveProductBySlug(slug: string): Promise<StoreProduct
     select: detailSelect,
   } as never)) as unknown as CatalogRow | null;
 
-  return product ? normalizeProduct(product) : null;
+  return product ? (await withVerifiedSales([normalizeProduct(product)]))[0] : null;
 }
 
 export async function getProductPageData(slug: string): Promise<{
@@ -191,10 +205,8 @@ export async function getProductPageData(slug: string): Promise<{
     take: 3,
   } as never)) as unknown as CatalogRow[];
 
-  return {
-    product: normalizeProduct(product),
-    related: relatedRows.map(normalizeProduct),
-  };
+  const [main, ...related] = await withVerifiedSales([normalizeProduct(product), ...relatedRows.map(normalizeProduct)]);
+  return { product: main, related };
 }
 
 export async function getRelatedProducts(
@@ -213,7 +225,7 @@ export async function getRelatedProducts(
     take: limit,
   } as never)) as unknown as CatalogRow[];
 
-  return products.map(normalizeProduct);
+  return withVerifiedSales(products.map(normalizeProduct));
 }
 
 export async function getActiveProductsByIds(ids: string[]): Promise<StoreProduct[]> {
@@ -224,7 +236,7 @@ export async function getActiveProductsByIds(ids: string[]): Promise<StoreProduc
     select: listSelect,
   } as never)) as unknown as CatalogRow[];
 
-  const mapped = products.map(normalizeProduct);
+  const mapped = await withVerifiedSales(products.map(normalizeProduct));
   return ids
     .map((id) => mapped.find((item) => item.id === id))
     .filter((item): item is StoreProduct => Boolean(item));

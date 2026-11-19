@@ -233,7 +233,7 @@ export async function POST(request: Request) {
       invalidate();
       return NextResponse.json({ product, existing: false });
     }
-    if (body.action === "publish" || body.action === "update-drafts") {
+    if (body.action === "publish" || body.action === "publish-preview" || body.action === "update-drafts") {
       const ids: unknown = body.ids;
       if (
         !Array.isArray(ids) ||
@@ -312,6 +312,17 @@ export async function POST(request: Request) {
         });
         invalidate();
         return NextResponse.json({ updated: result.count });
+      }
+      // Catalog previews are visible but can never be ordered without a positive price and verified stock.
+      // Storefront and checkout each enforce that availability independently.
+      if (body.action === "publish-preview") {
+        if (products.some((product) => !product.media.length)) return error("Every preview must have at least one photo.");
+        const result = await prisma.product.updateMany({
+          where: { id: { in: uniqueIds }, status: "DRAFT", sku: { startsWith: "GTA-BULK-" } },
+          data: { status: "ACTIVE" },
+        });
+        invalidate();
+        return NextResponse.json({ published: result.count });
       }
       const blocked = products.filter(
         (p) => !(p.price > 0) || !p.media.length || !(p.stock > 0),

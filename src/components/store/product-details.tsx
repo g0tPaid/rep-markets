@@ -9,6 +9,7 @@ import {
   ProductBrandWatermark,
 } from '@/components/store/product-brand-watermark';
 import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
+import { SalesBadge } from '@/components/store/sales-badge';
 import {
   getQualityOption,
   priceForQuality,
@@ -39,6 +40,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
   const heroImages = gallery.slice(0, 2);
   const moreImages = gallery.slice(2);
   const isFlatPriceProduct = product.tags.includes('flat-price');
+  const isPreview = product.catalogPreview || product.price <= 0;
   const basePrice = product.salePrice ?? product.price;
   const quality = getQualityOption(selectedQuality);
   const unitPrice = priceForQuality(basePrice, selectedQuality, product.qualityPrices);
@@ -169,6 +171,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           {product.line === 'NON_REP' ? 'NON-REP' : 'REP'} · {product.category}
         </p>
         <h1 className="font-serif text-5xl leading-[0.92] tracking-[-0.06em]">{product.name}</h1>
+        <div className="mt-3"><SalesBadge product={product} /></div>
         <VendorBrandBadge
           brand={product.brand}
           brandLogoUrl={product.brandLogoUrl}
@@ -176,7 +179,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           logoClassName="size-7"
           showName
         />
-        <div className="mt-4">
+        {isPreview ? <p className="mt-4 text-lg font-semibold text-neutral-600">{product.price <= 0 ? 'Price coming soon' : 'Availability pending'}</p> : <div className="mt-4">
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted">From</p>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <p className="text-2xl font-semibold tracking-tight text-red-600">
@@ -199,7 +202,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
               <span className="text-sm text-black/70">{formatPrice(unitPrice)}</span>
             </p>
           ) : null}
-        </div>
+        </div>}
         {product.description ? (
           <p className="mt-5 text-sm leading-6 text-muted">{product.description}</p>
         ) : null}
@@ -220,8 +223,8 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
             <div>
               <p className="font-serif text-lg leading-tight">{product.name}</p>
               <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                <p className="text-sm font-semibold text-red-400">{formatPrice(lowestPrice)}</p>
-                {hasPriceRange ? (
+                <p className="text-sm font-semibold text-red-400">{isPreview ? 'Price & availability pending' : formatPrice(lowestPrice)}</p>
+                {!isPreview && hasPriceRange ? (
                   <p className="text-xs text-white/60">– {formatPrice(highestPrice)}</p>
                 ) : null}
               </div>
@@ -326,7 +329,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
         </section>
       ) : null}
 
-      {!isFlatPriceProduct ? (
+      {!isPreview && !isFlatPriceProduct ? (
       <section
         className={cn(
           'border-hairline px-4 py-5',
@@ -376,7 +379,7 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
       ) : null}
 
       <section className="px-4 py-5">
-        <div className="mb-4 flex items-center justify-between">
+        {!isPreview && <div className="mb-4 flex items-center justify-between">
           <p className="text-[11px] font-semibold tracking-[0.22em]">QUANTITY</p>
           <div className="flex items-center border border-hairline">
             <button type="button" className="size-10" onClick={() => setQuantity((value) => Math.max(1, value - 1))}>
@@ -387,11 +390,12 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
               +
             </button>
           </div>
-        </div>
+        </div>}
         <button
           type="button"
+          disabled={Boolean(isPreview)}
           onClick={() =>
-            addItem({
+            !isPreview && addItem({
               productId: product.id,
               slug: product.slug,
               name: product.name,
@@ -404,9 +408,9 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
               quantity,
             })
           }
-          className="w-full bg-black px-5 py-4 text-[11px] font-semibold tracking-[0.22em] text-white"
+          className="w-full bg-black px-5 py-4 text-[11px] font-semibold tracking-[0.22em] text-white disabled:bg-neutral-200 disabled:text-neutral-600"
         >
-          ADD TO CART · {formatPrice(unitPrice)}
+          {isPreview ? 'COMING SOON · NOT AVAILABLE TO ORDER' : `ADD TO CART · ${formatPrice(unitPrice)}`}
         </button>
         <a
           href="https://wa.me/8618059262730"

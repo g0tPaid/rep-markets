@@ -2,6 +2,9 @@
 
 import { Prisma } from '@/generated/prisma';
 import { prisma } from '@/lib/prisma';
+import { parseQualityPrices, priceForQuality } from '@/lib/products';
+
+class CheckoutUnavailableError extends Error {}
 
 export type CheckoutItemInput = {
   productId: string;
@@ -62,6 +65,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       .join('\n');
 
     const order = await prisma.$transaction(async (tx) => {
+      const productIds = [...new Set(input.items.map((item) => item.productId))];
+      const products = await tx.product.findMany({ where: { id: { in: productIds }, status: 'ACTIVE' }, select: { id: true, name: true, stock: true, price: true, salePrice: true, qualityPrices: true, tags: true } });
+      const byId = new Map(products.map((product) => [product.id, product]));
+      for (const item of input.items) {
+        const product = byId.get(item.productId);
+        if (!product || !(product.price > 0) || !Number.isInteger(item.quantity) || item.quantity <= 0) throw new CheckoutUnavailableError('An item is not available to order yet. Remove it and refresh your cart.');
+        const tags = Array.isArray(product.tags) ? product.tags : [];
+        if (tags.includes('gta-bulk-import') && (product.stock <= 0 || item.quantity > product.stock)) throw new CheckoutUnavailableError(`${product.name} has unconfirmed or insufficient stock.`);
+        const base = product.salePrice ?? product.price;
+        const currentPrice = tags.includes('flat-price') ? base : priceForQuality(base, item.quality, parseQualityPrices(product.qualityPrices));
+        if (!(currentPrice > 0) || !Number.isFinite(item.price) || Math.abs(item.price - currentPrice) > 0.01) throw new CheckoutUnavailableError(`The price of ${product.name} changed. Refresh the product and cart before ordering.`);
+      }
       const number = await nextOrderNumber(tx);
 
       const address = await tx.address.create({
@@ -99,7 +114,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           shippingAddressId: address.id,
           items: {
             create: input.items.map((item) => ({
-              productId: null,
+              productId: item.productId,
               name: item.qualityLabel ? `${item.name} · ${item.qualityLabel}` : item.name,
               size: item.size || null,
               color: item.color || null,
@@ -114,6 +129,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
     return { ok: true, orderNumber: order.number, orderId: order.id };
   } catch (error) {
+    if (error instanceof CheckoutUnavailableError) return { ok: false, error: error.message };
     console.error('placeOrder failed', error);
     return { ok: false, error: 'Could not place order. Please try again or message us on WhatsApp.' };
   }

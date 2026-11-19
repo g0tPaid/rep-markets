@@ -5,6 +5,7 @@ import { motion, useMotionValue, useReducedMotion, useTransform } from 'framer-m
 import { ArrowLeft, ArrowRight, ImageIcon, ShoppingBag, X } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { QualityPriceRange } from '@/components/store/quality-price-range';
+import { SalesBadge } from '@/components/store/sales-badge';
 import { getQualityOption, priceForQuality, QUALITY_OPTIONS, type StoreProduct } from '@/lib/products';
 import { useCart } from '@/lib/store';
 import { formatPrice } from '@/lib/utils';
@@ -24,6 +25,7 @@ export function SwipeCatalog({ products }: { products: StoreProduct[] }) {
   }
 
   function chooseOptions() {
+    if (product?.catalogPreview || (product?.price ?? 0) <= 0) { setStatus('This item is a catalog preview. Price and availability will be added soon.'); return; }
     chooseButton.current?.focus({ preventScroll: true });
     setChoosing(true);
   }
@@ -46,8 +48,8 @@ export function SwipeCatalog({ products }: { products: StoreProduct[] }) {
             <button type="button" onClick={next} className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-neutral-300 px-3 text-sm font-semibold hover:bg-neutral-50">
               <ArrowLeft size={17} aria-hidden /> Skip
             </button>
-            <button ref={chooseButton} type="button" onClick={chooseOptions} className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-rose-700 px-3 text-sm font-semibold text-white hover:bg-rose-800">
-              <ShoppingBag size={17} aria-hidden /> Choose options
+            <button ref={chooseButton} type="button" disabled={product.catalogPreview || product.price <= 0} onClick={chooseOptions} className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-rose-700 px-3 text-sm font-semibold text-white hover:bg-rose-800 disabled:bg-neutral-200 disabled:text-neutral-600">
+              <ShoppingBag size={17} aria-hidden /> {product.catalogPreview || product.price <= 0 ? 'Coming soon' : 'Choose options'}
             </button>
           </div>
           {choosing ? (
@@ -122,6 +124,7 @@ function SwipeCard({
       </div>
       <div className="px-5 pb-5 pt-4">
         <p className="text-xs font-medium text-neutral-600">{product.category}</p>
+        <div className="mt-1"><SalesBadge product={product} /></div>
         <h2 className="mt-1 break-words font-serif text-3xl leading-tight">{product.name}</h2>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <QualityPriceRange product={product} normalClassName="text-lg font-bold text-rose-700" highClassName="text-sm font-semibold text-neutral-700" />
@@ -150,7 +153,7 @@ function ProductOptions({
   const isFlatPriceProduct = product.tags.includes('flat-price');
   const [quality, setQuality] = useState(isFlatPriceProduct ? 'NORMAL' : '');
   const base = product.salePrice ?? product.price;
-  const ready = Boolean(size && quality && (!product.colors.length || color));
+  const ready = !product.catalogPreview && product.price > 0 && Boolean(size && quality && (!product.colors.length || color));
   const price = priceForQuality(base, quality, product.qualityPrices);
 
   useEffect(() => {
@@ -230,7 +233,7 @@ function ProductOptions({
           </select>
         </label> : null}
         <button type="submit" disabled={!ready} className="min-h-12 w-full rounded-full bg-rose-700 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-800 disabled:bg-neutral-200 disabled:text-neutral-600">
-          Add to cart{quality ? ` · ${formatPrice(price)}` : ''}
+          {product.catalogPreview || product.price <= 0 ? 'Pricing & availability pending' : `Add to cart${quality ? ` · ${formatPrice(price)}` : ''}`}
         </button>
       </form>
     </dialog>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import type { StoreProduct } from '@/lib/products';
 import { QualityPriceRange } from '@/components/store/quality-price-range';
+import { SalesBadge } from '@/components/store/sales-badge';
 import { useWishlist } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
@@ -68,6 +69,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         </button>
       </div>
       <Link href={`/product/${product.slug}`} className="mt-1.5 block">
+        <div className="mb-1 flex justify-start"><SalesBadge product={product} /></div>
         <h3 className="truncate text-[11px] font-medium leading-tight uppercase tracking-[0.12em]">{product.name}</h3>
         <p className="mt-0.5 text-center leading-tight text-emerald-600">
           <QualityPriceRange product={product} showFrom={false} />

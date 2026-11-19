@@ -118,6 +118,10 @@ export type StoreProduct = {
   slug: string;
   name: string;
   price: number;
+  /** Positive paid/fulfilled quantities linked to this product in the store. */
+  soldCount?: number;
+  /** Catalog preview while pricing or stock is not confirmed. */
+  catalogPreview?: boolean;
   salePrice?: number | null;
   /** When true, show Free shipping badge on product cards */
   freeShipping?: boolean;
@@ -166,6 +170,8 @@ export type PrismaProductShape = {
   slug?: string | null;
   name: string;
   price: DecimalLike;
+  stock?: number;
+  soldCount?: number;
   salePrice?: DecimalLike;
   freeShipping?: boolean | null;
   qualityPrices?: unknown;
@@ -243,15 +249,21 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
   const gallery = media.map((image) => image.url).filter(Boolean) as string[];
   const fallback = mockImage(product.name, 'f7f7f2');
   const categoryLabel = toCategoryLabel(product.category, product.tags?.[0]);
+  const price = toNumber(product.price);
+  const salePrice = product.salePrice ? toNumber(product.salePrice) : null;
+  const flatPrice = product.tags?.includes('flat-price');
+  const flatBase = salePrice ?? price;
 
   return {
     id: product.id,
     slug: product.slug || slugify(product.name),
     name: product.name,
-    price: toNumber(product.price),
-    salePrice: product.salePrice ? toNumber(product.salePrice) : null,
+    price,
+    salePrice,
+    soldCount: Math.max(0, product.soldCount ?? 0),
+    catalogPreview: price <= 0 || (product.tags?.includes('gta-bulk-import') === true && (product.stock ?? 0) <= 0),
     freeShipping: Boolean(product.freeShipping),
-    qualityPrices: parseQualityPrices(product.qualityPrices),
+    qualityPrices: flatPrice ? { NORMAL: flatBase, GOOD: flatBase, HIGH: flatBase, ONE_TO_ONE: flatBase, MIRROR: flatBase } : parseQualityPrices(product.qualityPrices),
     line: toCatalogLine(product.category),
     category: categoryLabel,
     categorySlug: toCategorySlug(product.category, categoryLabel),

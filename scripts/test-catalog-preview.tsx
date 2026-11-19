@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { mapPrismaProductToStore, qualityPriceRange } from '../src/lib/products';
+import { SalesBadge } from '../src/components/store/sales-badge';
+import { QualityPriceRange } from '../src/components/store/quality-price-range';
+
+const base = { id: 'test', name: 'GTA Test', tags: ['gta-bulk-import', 'flat-price'], media: [{ url: '/test.jpg' }] };
+const pending = mapPrismaProductToStore({ ...base, price: 0, stock: 0 });
+assert.equal(pending.catalogPreview, true);
+assert.match(renderToStaticMarkup(<QualityPriceRange product={pending} />), /Price coming soon/);
+assert.doesNotMatch(renderToStaticMarkup(<QualityPriceRange product={pending} />), /\$0\.00/);
+assert.match(renderToStaticMarkup(<SalesBadge product={pending} />), /New preview/);
+const missingStock = mapPrismaProductToStore({ ...base, price: 20, stock: 0 });
+assert.equal(missingStock.catalogPreview, true);
+assert.match(renderToStaticMarkup(<QualityPriceRange product={missingStock} />), /Availability pending/);
+const ready = mapPrismaProductToStore({ ...base, price: 20, stock: 5, soldCount: 12 });
+assert.equal(ready.catalogPreview, false);
+assert.deepEqual(qualityPriceRange(ready), { low: 20, high: 20 });
+assert.match(renderToStaticMarkup(<SalesBadge product={ready} />), /12 sold/);
+assert.equal(renderToStaticMarkup(<SalesBadge product={{ soldCount: 0 }} />), '');
+console.log('Catalog preview and verified-sales badge tests passed.');
