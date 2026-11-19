@@ -16,7 +16,7 @@ function GTA6Button({ selected, onClick }: { selected: boolean; onClick: () => v
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      aria-label="Browse GTA 6 collection"
+      aria-label="Shop GTA VI merchandise"
       className={cn(
         'group relative flex min-h-[54px] min-w-0 w-full items-center justify-center rounded-[13px] bg-transparent p-0 transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d74687] active:scale-[0.98] sm:min-h-[62px]',
         selected
@@ -27,13 +27,13 @@ function GTA6Button({ selected, onClick }: { selected: boolean; onClick: () => v
       {/* Keep the supplied artwork intact, including its lettering and frame. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/gta-vi-selected.webp"
+        src="/images/gta-vi-merch-shop-now.webp"
         alt=""
         aria-hidden="true"
         loading="eager"
         decoding="async"
         draggable={false}
-        className="block h-auto w-full max-w-[240px] select-none object-contain transition-transform duration-200 group-hover:scale-[1.025]"
+        className="block h-auto w-full max-w-[300px] select-none object-contain transition-transform duration-200 group-hover:scale-[1.025]"
       />
     </button>
   );
