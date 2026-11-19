@@ -9,6 +9,7 @@ import { ProductGrid } from '@/components/store/product-grid';
 import { SearchOverlay } from '@/components/store/search-overlay';
 import { SwipeCatalog } from '@/components/store/swipe-catalog';
 import { ViewToggle } from '@/components/store/view-toggle';
+import { GTA_CATEGORIES, gtaCategorySlug } from '@/lib/gta-import';
 import {
   filterProducts,
   type ProductView,
@@ -23,6 +24,7 @@ type HomeCatalogProps = {
 
 export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
   const [view, setView] = useState<ProductView>('REPS');
+  const [gtaCategory, setGtaCategory] = useState('ALL');
   const [layout, setLayout] = useState<'grid' | 'swipe'>('grid');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [shippingNoticeOpen, setShippingNoticeOpen] = useState(true);
@@ -47,7 +49,7 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
   }
 
   const filtered = useMemo(() => {
-    return filterProducts(catalog, 'ALL', view)
+    return filterProducts(catalog, view === 'GTA_6' ? gtaCategory : 'ALL', view)
       .slice()
       .sort((a, b) => {
         const aFeatured = Boolean(a.featured);
@@ -58,13 +60,23 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
         if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
         return 0;
       });
-  }, [catalog, view]);
+  }, [catalog, view, gtaCategory]);
+
+  const gtaCategories = useMemo(() => {
+    const unique = new Map<string, string>();
+    for (const product of filterProducts(catalog, 'ALL', 'GTA_6')) {
+      const key = product.categorySlug || product.category;
+      if (key) unique.set(key, key === 'gta-6' ? 'General GTA Merch' : GTA_CATEGORIES.find((item) => gtaCategorySlug(item) === key) || product.category);
+    }
+    return [...unique.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [catalog]);
 
   const products = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
   function changeView(nextView: ProductView) {
     setView(nextView);
+    setGtaCategory('ALL');
     setVisibleCount(PAGE_SIZE);
   }
 
@@ -118,8 +130,15 @@ export function HomeCatalog({ products: catalog }: HomeCatalogProps) {
         ) : null}
       </section>
       <ViewToggle value={view} onChange={changeView} />
+      {view === 'GTA_6' && gtaCategories.length > 1 ? (
+        <nav aria-label="GTA VI merchandise categories" className="flex gap-2 overflow-x-auto px-4 py-2">
+          {([['ALL', 'All merch'], ...gtaCategories] as [string, string][]).map(([key, label]) => (
+            <button key={key} type="button" aria-pressed={gtaCategory === key} onClick={() => { setGtaCategory(key); setVisibleCount(PAGE_SIZE); }} className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${gtaCategory === key ? 'border-black bg-black text-white' : 'border-neutral-200 bg-white text-neutral-700'}`}>{label}</button>
+          ))}
+        </nav>
+      ) : null}
       <OffersBanner />
-      <SearchOverlay products={filterProducts(catalog, 'ALL', view)} />
+      <SearchOverlay products={filterProducts(catalog, view === 'GTA_6' ? gtaCategory : 'ALL', view)} />
       <div aria-label="Catalog layout" role="group" className="mx-auto mb-2 flex w-fit gap-1 rounded-full bg-surface p-1">
         {(['grid', 'swipe'] as const).map((option) => (
           <button

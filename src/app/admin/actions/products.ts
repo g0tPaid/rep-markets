@@ -159,6 +159,9 @@ async function replaceProductMedia(productId: string, formData: FormData) {
   const MAX_IMAGES = 15;
   const productName = stringValue(formData, "name") || "Product";
   const urls: string[] = [];
+  // Retain bulk-import image fingerprints when an admin edits existing galleries.
+  const previousMedia = await prisma.productMedia.findMany({ where: { productId }, select: { url: true, publicId: true } });
+  const publicIdByUrl = new Map(previousMedia.map((media) => [media.url, media.publicId]));
 
   for (let index = 0; index < MAX_IMAGES; index += 1) {
     const url = await resolveImageUrl(formData, `image${index}`, `existingImageUrl${index}`);
@@ -175,6 +178,7 @@ async function replaceProductMedia(productId: string, formData: FormData) {
     data: urls.map((url, sortOrder) => ({
       productId,
       url,
+      publicId: publicIdByUrl.get(url) ?? null,
       kind: "ITEM",
       alt: `${productName} image ${sortOrder + 1}`,
       sortOrder,

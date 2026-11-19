@@ -270,7 +270,8 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
       return raw;
     })(),
     sizes: Array.isArray(product.sizes) ? (product.sizes as string[]) : [],
-    colors: product.colors?.length ? product.colors : ['Black', 'Natural'],
+    // Bulk merchandise with no confirmed variants must not display invented colors.
+    colors: product.colors?.length ? product.colors : product.tags?.includes('gta-bulk-import') ? [] : ['Black', 'Natural'],
     tags: product.tags ?? [],
     images: gallery.length ? gallery : [fallback],
     featured: Boolean(product.featured),

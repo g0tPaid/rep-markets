@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "products": [
+    {
+      "name": "GTA VI Gaming Desk Mat",
+      "category": "Mouse Pads & Gaming",
+      "description": "Gaming desk mat with GTA VI-inspired artwork. Confirm the size and material with the supplier before publishing.",
+      "price": null,
+      "stock": null,
+      "sizes": [],
+      "colors": ["Sunset design"],
+      "tags": ["gaming", "desk mat"],
+      "images": ["mouse-pads/sunset/front.jpg", "mouse-pads/sunset/detail.jpg"]
+    }
+  ]
+}

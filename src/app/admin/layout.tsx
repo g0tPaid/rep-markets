@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/products", label: "Products" },
+  { href: "/admin/gta-import", label: "GTA Bulk Import" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/customers", label: "Customers" },
