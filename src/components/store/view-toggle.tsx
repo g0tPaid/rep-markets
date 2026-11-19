@@ -27,7 +27,9 @@ function GTA6Button({ selected, onClick }: { selected: boolean; onClick: () => v
       {/* Preserve the supplied transparent artwork without cropping or stretching. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/gta-vi-merch-artwork.webp"
+        src="/_next/image?url=%2Fimages%2Fgta-vi-merch-artwork.webp&w=384&q=75"
+        srcSet="/_next/image?url=%2Fimages%2Fgta-vi-merch-artwork.webp&w=256&q=75 256w, /_next/image?url=%2Fimages%2Fgta-vi-merch-artwork.webp&w=384&q=75 384w"
+        sizes="(max-width: 428px) 33vw, 142px"
         alt=""
         aria-hidden="true"
         loading="eager"
@@ -82,3 +84,4 @@ export function ViewToggle({ value, onChange }: ViewToggleProps) {
     </div>
   );
 }
+

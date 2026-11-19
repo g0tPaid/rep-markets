@@ -22,8 +22,9 @@ export function ProductGrid({ products }: ProductGridProps) {
   return (
     <section className="grid grid-cols-3 gap-x-1.5 gap-y-2.5 px-2 pb-16">
       {products.map((product, index) => (
-        <ProductCard key={product.id} product={product} priority={index < 6} />
+        <ProductCard key={product.id} product={product} priority={index < 3} />
       ))}
     </section>
   );
 }
+

@@ -10,9 +10,13 @@ import { VendorBrandBadge } from '@/components/store/vendor-brand-badge';
 
 type SearchOverlayProps = {
   products: StoreProduct[];
+  onOpen?: () => void;
+  catalogReady?: boolean;
+  loading?: boolean;
+  error?: boolean;
 };
 
-export function SearchOverlay({ products }: SearchOverlayProps) {
+export function SearchOverlay({ products, onOpen, catalogReady = true, loading = false, error = false }: SearchOverlayProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -35,7 +39,7 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
       <div className="px-4 pb-4 pt-3.5">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => { setOpen(true); onOpen?.(); }}
           className="flex w-full items-center justify-between border border-hairline px-4 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-muted"
         >
           Search rep.markets
@@ -70,12 +74,15 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
                 <p className="mb-5 text-[11px] font-semibold tracking-[0.22em] text-muted">
                   {query ? 'RESULTS' : 'SUGGESTED'}
                 </p>
-                {results.length ? (
+                {!catalogReady ? (
+                  <div className="py-8 text-center text-sm text-muted">{error && !loading ? <button type="button" onClick={onOpen} className="underline">Could not load all search results. Try again.</button> : 'Loading full collection…'}</div>
+                ) : results.length ? (
                   <div className="space-y-3">
                     {results.map((product) => (
                       <Link
                         key={product.id}
                         href={`/product/${product.slug}`}
+                        prefetch={false}
                         onClick={() => setOpen(false)}
                         className="grid grid-cols-[56px_1fr_auto] items-center gap-3 border-b border-hairline pb-3"
                       >
@@ -120,3 +127,4 @@ export function SearchOverlay({ products }: SearchOverlayProps) {
     </>
   );
 }
+

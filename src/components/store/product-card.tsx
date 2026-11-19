@@ -19,20 +19,25 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const liked = useWishlist((state) => state.has(product.id));
   const image = product.image || product.images[0];
   const [broken, setBroken] = useState(false);
+  const [originalFallback, setOriginalFallback] = useState(false);
+  const thumbnail = Boolean(image && /^\/(?:api\/media\/f\/|images\/|uploads\/)/.test(image) && !originalFallback);
+  const thumbnailUrl = (width: number) => `/_next/image?url=${encodeURIComponent(image)}&w=${width}&q=75`;
 
   return (
     <article className="group min-w-0">
       <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-surface">
-        <Link href={`/product/${product.slug}`} className="absolute inset-0" aria-label={`View ${product.name}`}>
+        <Link prefetch={false} href={`/product/${product.slug}`} className="absolute inset-0" aria-label={`View ${product.name}`}>
           {image && !broken ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={image}
+              src={thumbnail ? thumbnailUrl(256) : image}
+              srcSet={thumbnail ? `${thumbnailUrl(256)} 256w, ${thumbnailUrl(384)} 384w, ${thumbnailUrl(640)} 640w` : undefined}
+              sizes={thumbnail ? '(max-width: 428px) 33vw, 142px' : undefined}
               alt={product.name}
               loading={priority ? 'eager' : 'lazy'}
               fetchPriority={priority ? 'high' : 'low'}
               decoding="async"
-              onError={() => setBroken(true)}
+              onError={() => thumbnail ? setOriginalFallback(true) : setBroken(true)}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
             />
           ) : (
@@ -68,7 +73,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           <Heart className={cn('size-3.5', liked && 'fill-black')} strokeWidth={1.7} />
         </button>
       </div>
-      <Link href={`/product/${product.slug}`} className="mt-1.5 block">
+      <Link prefetch={false} href={`/product/${product.slug}`} className="mt-1.5 block">
         <div className="mb-1 flex justify-start"><SalesBadge product={product} /></div>
         <h3 className="truncate text-[11px] font-medium leading-tight uppercase tracking-[0.12em]">{product.name}</h3>
         <p className="mt-0.5 text-center leading-tight text-emerald-600">
@@ -78,3 +83,4 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     </article>
   );
 }
+

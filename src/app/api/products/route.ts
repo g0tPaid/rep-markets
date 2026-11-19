@@ -21,7 +21,8 @@ export async function GET(request: Request) {
   const catalog = await getActiveProducts();
   const filtered = filterProducts(catalog, category, view);
   const start = (page - 1) * limit;
-  const data = filtered.slice(start, start + limit);
+  // The homepage fetches the remainder of the selected collection only after interaction.
+  const data = searchParams.get('all') === '1' ? filtered : filtered.slice(start, start + limit);
 
   return NextResponse.json({
     data,
@@ -33,3 +34,4 @@ export async function GET(request: Request) {
     },
   });
 }
+
