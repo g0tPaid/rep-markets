@@ -19,4 +19,8 @@ assert.equal(ready.catalogPreview, false);
 assert.deepEqual(qualityPriceRange(ready), { low: 20, high: 20 });
 assert.match(renderToStaticMarkup(<SalesBadge product={ready} />), /12 sold/);
 assert.equal(renderToStaticMarkup(<SalesBadge product={{ soldCount: 0 }} />), '');
+const reported = mapPrismaProductToStore({ ...base, price: 20, stock: 5, soldCount: 12, reportedSalesFloor: 1000 });
+assert.equal(reported.reportedSalesFloor, 1000);
+assert.match(renderToStaticMarkup(<SalesBadge product={reported} />), /1,000\+ sold/);
+assert.match(renderToStaticMarkup(<SalesBadge product={reported} />), /Merchant-reported lifetime sales/);
 console.log('Catalog preview and verified-sales badge tests passed.');

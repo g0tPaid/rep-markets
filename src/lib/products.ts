@@ -120,6 +120,8 @@ export type StoreProduct = {
   price: number;
   /** Positive paid/fulfilled quantities linked to this product in the store. */
   soldCount?: number;
+  /** Merchant-reported minimum lifetime sales including physical sales. */
+  reportedSalesFloor?: number;
   /** Catalog preview while pricing or stock is not confirmed. */
   catalogPreview?: boolean;
   salePrice?: number | null;
@@ -172,6 +174,7 @@ export type PrismaProductShape = {
   price: DecimalLike;
   stock?: number;
   soldCount?: number;
+  reportedSalesFloor?: number;
   salePrice?: DecimalLike;
   freeShipping?: boolean | null;
   qualityPrices?: unknown;
@@ -261,6 +264,7 @@ export function mapPrismaProductToStore(product: PrismaProductShape): StoreProdu
     price,
     salePrice,
     soldCount: Math.max(0, product.soldCount ?? 0),
+    reportedSalesFloor: Math.max(0, product.reportedSalesFloor ?? 0),
     catalogPreview: price <= 0 || (product.tags?.includes('gta-bulk-import') === true && (product.stock ?? 0) <= 0),
     freeShipping: Boolean(product.freeShipping),
     qualityPrices: flatPrice ? { NORMAL: flatBase, GOOD: flatBase, HIGH: flatBase, ONE_TO_ONE: flatBase, MIRROR: flatBase } : parseQualityPrices(product.qualityPrices),

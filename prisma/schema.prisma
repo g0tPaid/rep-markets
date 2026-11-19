@@ -133,6 +133,8 @@ model Product {
   qualityPrices    Json         @default("{}")
   sku              String?       @unique
   stock            Int           @default(1000)
+  /// Merchant-reported minimum lifetime units sold, including physical sales.
+  reportedSalesFloor Int         @default(0)
   sizes            Json @default("[]")
   colors           Json @default("[]")
   tags             Json @default("[]")
