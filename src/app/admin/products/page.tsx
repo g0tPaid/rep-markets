@@ -17,6 +17,7 @@ import {
 } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 import { isLegacyDiskMediaUrl } from "@/lib/uploads";
+import { QuickProductForm } from "./quick-product-form";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,8 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
     salePrice: true,
     freeShipping: true,
     stock: true,
+    sizes: true,
+    tags: true,
     status: true,
     featured: true,
     homepageOrder: true,
@@ -377,6 +380,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
                   <p className="text-[11px] text-black/50">
                     Stock {product.stock} · {product.status}
                   </p>
+                  <QuickProductForm id={product.id} price={Number(product.price)} stock={product.stock} sizes={Array.isArray(product.sizes) ? product.sizes.filter((size): size is string => typeof size === "string") : []} visible={product.status === "ACTIVE"} singleQuality={Array.isArray(product.tags) && product.tags.includes("flat-price")} />
                   <form action={toggleProductSale}>
                     <input type="hidden" name="id" value={product.id} />
                     <input type="hidden" name="returnTo" value={listReturnTo} />
@@ -462,3 +466,4 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
     </div>
   );
 }
+

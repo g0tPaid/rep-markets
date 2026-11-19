@@ -16,6 +16,7 @@ import { saveUploadedImage } from "@/lib/uploads";
 
 export type ProductActionState = {
   error?: string;
+  success?: boolean;
 };
 
 const categoryLineSelect = {
@@ -137,7 +138,7 @@ function productData(formData: FormData) {
     stock: numberValue(formData, "stock", 1000),
     sizes: csvValue(formData, "sizes"),
     colors: csvValue(formData, "colors"),
-    tags: csvValue(formData, "tags"),
+    tags: [...csvValue(formData, "tags").filter((tag) => tag !== "flat-price"), ...(formData.get("singleQuality") === "on" ? ["flat-price"] : [])],
     weight: optionalNumber(formData, "weight"),
     material: optionalString(formData, "material"),
     status: (stringValue(formData, "status") || "ACTIVE") as ProductStatus,
@@ -295,6 +296,33 @@ export async function updateProduct(
   }
 
   redirect("/admin/products");
+}
+
+export async function quickUpdateProduct(id: string, _state: ProductActionState, formData: FormData): Promise<ProductActionState> {
+  await requireAdmin();
+  const rawPrice = stringValue(formData, "price");
+  const rawStock = stringValue(formData, "stock");
+  const price = Number(rawPrice);
+  const stock = Number(rawStock);
+  if (!rawPrice || !Number.isFinite(price) || price < 0 || price > 9999999) return { error: "Enter a valid price." };
+  if (!rawStock || !Number.isSafeInteger(stock) || stock < 0 || stock > 2147483647) return { error: "Enter a valid stock quantity." };
+  const sizes = [...new Set(csvValue(formData, "sizes"))];
+  if (sizes.length > 100 || sizes.some((size) => size.length > 80)) return { error: "Too many or invalid sizes." };
+  try {
+    const product = await prisma.product.findUnique({ where: { id }, select: { slug: true, status: true, tags: true } });
+    if (!product) return { error: "Product not found." };
+    const visible = formData.get("visible") === "on";
+    const singleQuality = formData.get("singleQuality") === "on";
+    const currentTags = Array.isArray(product.tags) ? product.tags : [];
+    const tags = [...currentTags.filter((tag): tag is string => typeof tag === "string" && tag !== "flat-price"), ...(singleQuality ? ["flat-price"] : [])];
+    const status = visible ? ProductStatus.ACTIVE : product.status === ProductStatus.ACTIVE ? ProductStatus.HIDDEN : product.status;
+    await prisma.product.update({ where: { id }, data: { price, stock, sizes, tags, status } });
+    revalidatePath(`/admin/products/edit/${id}`);
+    bustCatalogCache(product.slug);
+    return { success: true };
+  } catch (error) {
+    return { error: actionError(error) };
+  }
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -575,3 +603,4 @@ export async function repairLegacyMediaLinks() {
     `/admin/products?mediaRepair=1&linked=${linked}&missing=${stillMissing}`,
   );
 }
+

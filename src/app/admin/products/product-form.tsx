@@ -527,6 +527,10 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
         </div>
 
         <div className="md:col-span-3">
+          <label className="mb-3 flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" name="singleQuality" defaultChecked={product?.tags.includes('flat-price') ?? false} />
+            Single quality (hide the customer quality selector and use the base price)
+          </label>
           <p className="text-sm font-medium">Quality prices</p>
           <p className="mt-1 text-xs text-black/50">
             Leave blank to use automatic markup from the base price. Fill any tier to override.
@@ -705,7 +709,7 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
           <input
             id="tags"
             name="tags"
-            defaultValue={product?.tags.join(', ') ?? ''}
+            defaultValue={product?.tags.filter((tag) => tag !== 'flat-price').join(', ') ?? ''}
             placeholder="minimal, everyday"
             className="mt-2 w-full border border-black/15 px-3 py-2 outline-none focus:border-black"
           />
@@ -795,3 +799,4 @@ export function ProductForm({ action, categories, product, submitLabel }: Produc
     </form>
   );
 }
+
