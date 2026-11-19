@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Prisma } from "@/generated/prisma";
 
 import {
   deleteProduct,
@@ -16,10 +17,10 @@ import {
   type CatalogLine,
 } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
-import { isLegacyDiskMediaUrl } from "@/lib/uploads";
 import { QuickProductForm } from "./quick-product-form";
 
 export const dynamic = "force-dynamic";
+const PAGE_SIZE = 24;
 
 const LINE_LABEL: Record<CatalogLine, string> = {
   REP: "REP",
@@ -30,6 +31,7 @@ type ProductsPageProps = {
   searchParams?: Promise<{
     q?: string;
     sort?: string;
+    page?: string;
     featuredError?: string;
     line?: string;
     mediaRepair?: string;
@@ -49,10 +51,29 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
   const params = await searchParams;
   const query = params?.q?.trim() ?? "";
   const sort = params?.sort === "price-asc" || params?.sort === "price-desc" ? params.sort : "newest";
-  const listQuery = new URLSearchParams();
-  if (query) listQuery.set("q", query);
-  if (sort !== "newest") listQuery.set("sort", sort);
-  const listReturnTo = `/admin/products${listQuery.toString() ? `?${listQuery}` : ""}`;
+  const requestedPage = Number(params?.page ?? 1);
+  const productWhere: Prisma.ProductWhereInput = query ? {
+    OR: [
+      { name: { contains: query, mode: "insensitive" } },
+      { sku: { contains: query, mode: "insensitive" } },
+      { slug: { contains: query, mode: "insensitive" } },
+    ],
+  } : {};
+  const productOrder: Prisma.ProductOrderByWithRelationInput[] = [
+    ...(sort === "price-asc" ? [{ price: "asc" as const }] : sort === "price-desc" ? [{ price: "desc" as const }] : []),
+    { createdAt: "desc" }, { id: "asc" },
+  ];
+  const total = await prisma.product.count({ where: productWhere });
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(pageCount, Math.max(1, Number.isSafeInteger(requestedPage) ? requestedPage : 1));
+  function pageHref(target: number) {
+    const search = new URLSearchParams();
+    if (query) search.set("q", query);
+    if (sort !== "newest") search.set("sort", sort);
+    if (target > 1) search.set("page", String(target));
+    return `/admin/products${search.toString() ? `?${search}` : ""}`;
+  }
+  const listReturnTo = pageHref(page);
   const featuredError = params?.featuredError;
   const limitedLine =
     params?.line === "NON_REP" || params?.line === "REP" ? (params.line as CatalogLine) : null;
@@ -90,17 +111,11 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
 
   const [products, featuredProducts, mediaRows] = await Promise.all([
     prisma.product.findMany({
-      where: query
-        ? {
-            OR: [
-              { name: { contains: query, mode: "insensitive" } },
-              { sku: { contains: query, mode: "insensitive" } },
-              { slug: { contains: query, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
+      where: productWhere,
       select: productSelect,
-      orderBy: [{ createdAt: "desc" }],
+      orderBy: productOrder,
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
     }),
     prisma.product.findMany({
       where: { featured: true },
@@ -108,15 +123,13 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
       orderBy: [{ homepageOrder: "asc" }, { createdAt: "asc" }],
     }),
     prisma.productMedia.findMany({
-      select: { url: true, productId: true },
+      where: { OR: [{ url: { startsWith: "/uploads/" } }, { url: { startsWith: "/api/media/" }, NOT: { url: { startsWith: "/api/media/f/" } } }] },
+      select: { productId: true },
+      distinct: ["productId"],
     }),
   ]);
 
-  const sortedProducts = [...products].sort((a, b) => {
-    if (sort === "price-asc") return Number(a.price) - Number(b.price);
-    if (sort === "price-desc") return Number(b.price) - Number(a.price);
-    return 0; // newest already from query order
-  });
+  const sortedProducts = products;
 
   const featuredByLine: Record<CatalogLine, typeof featuredProducts> = {
     REP: featuredProducts.filter((product) => catalogLineFromCategory(product.category) === "REP"),
@@ -126,9 +139,19 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
   };
 
   const brokenProductIds = new Set(
-    mediaRows.filter((row) => isLegacyDiskMediaUrl(row.url)).map((row) => row.productId),
+    mediaRows.map((row) => row.productId),
   );
   const brokenImageCount = brokenProductIds.size;
+  const pagination = (
+    <nav aria-label="Product pages" className="flex flex-wrap items-center justify-between gap-2 border border-black/10 bg-white px-3 py-2 text-sm">
+      <p>Showing {total ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, total)} of {total} products</p>
+      <div className="flex items-center gap-2">
+        {page > 1 ? <Link prefetch={false} href={pageHref(page - 1)} className="border border-black/20 px-3 py-2">← Previous</Link> : <span className="px-3 py-2 text-black/30">← Previous</span>}
+        <span className="whitespace-nowrap font-medium">Page {page} / {pageCount}</span>
+        {page < pageCount ? <Link prefetch={false} href={pageHref(page + 1)} className="border border-black/20 px-3 py-2">Next →</Link> : <span className="px-3 py-2 text-black/30">Next →</span>}
+      </div>
+    </nav>
+  );
 
   return (
     <div className="space-y-6">
@@ -235,6 +258,8 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
                           <img
                             src={thumb}
                             alt={product.media[0]?.alt || product.name}
+                            loading="lazy"
+                            decoding="async"
                             className="h-full w-full object-cover"
                           />
                         ) : (
@@ -315,6 +340,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
       </form>
 
       <section>
+        {pagination}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {sortedProducts.map((product) => {
             const thumb = product.media[0]?.url;
@@ -342,6 +368,9 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
                     <img
                       src={thumb}
                       alt={product.media[0]?.alt || product.name}
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -437,6 +466,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
                   <div className="flex gap-3 pt-1 text-xs">
                     <Link
                       href={`/admin/products/edit/${product.id}`}
+                      prefetch={false}
                       className="underline underline-offset-4"
                     >
                       Edit
@@ -457,6 +487,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
             );
           })}
         </div>
+        {pagination}
         {!sortedProducts.length ? (
           <p className="border border-black/10 bg-white p-5 text-sm text-black/55">
             No products found. Create your first rep.markets product to start the catalog.
